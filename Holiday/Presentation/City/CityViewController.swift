@@ -386,8 +386,8 @@ private extension CityViewController {
 @available(iOS 17.0, *)
 #Preview {
     UINavigationController(rootViewController: CityViewController(viewModel: CityViewModel(useCase: CityUseCase(
-        weatherRepository: WeatherRepository(),
-        photoRepository: PhotoRepository()
+        weatherRepository: TestWeatherRepository(),
+        photoRepository: TestPhotoRepository()
     ))))
     
 }
