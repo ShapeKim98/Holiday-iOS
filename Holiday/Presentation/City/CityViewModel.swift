@@ -11,6 +11,7 @@ final class CityViewModel: ViewModel {
     enum Input {
         case viewDidLoad
         case bindWeather
+        case refreshButtonTouchUpInside
     }
     
     enum Output {
@@ -56,12 +57,16 @@ final class CityViewModel: ViewModel {
             fetchWeather()
         case .bindWeather:
             fetchPhoto()
+        case .refreshButtonTouchUpInside:
+            fetchWeather()
         }
     }
 }
 
 private extension CityViewModel {
     func fetchWeather() {
+        self.model.weather = nil
+        self.model.photo = nil
         Task { [weak self] in
             do {
                 let weather = try await self?.useCase.fetchWeather(id: 1835848)

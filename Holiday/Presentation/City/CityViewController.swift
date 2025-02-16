@@ -34,8 +34,7 @@ final class CityViewController: UIViewController {
         
         view.backgroundColor = .systemGray
         
-        navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.largeTitleDisplayMode = .automatic
+        configureNavigation()
         
         dataBinding()
         
@@ -57,6 +56,8 @@ private extension CityViewController {
         configureDateLabel(date: .now)
         
         configureWeatherVStack()
+        
+        configureActivityIndicatorView()
     }
     
     func configureLayout() {
@@ -86,6 +87,23 @@ private extension CityViewController {
                 make.leading.equalToSuperview()
             }
         }
+        
+        activityIndicatorView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
+    }
+    
+    func configureNavigation() {
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .automatic
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(
+                systemItem: .refresh,
+                primaryAction: UIAction { [weak self] _ in
+                    self?.refreshButtonTouchUpInside()
+                }
+            )
+        ]
     }
     
     func configureScrollView() {
@@ -263,6 +281,12 @@ private extension CityViewController {
     func configureNavigationTitle(_ title: String) {
         navigationItem.title = title
     }
+    
+    func configureActivityIndicatorView() {
+        activityIndicatorView.startAnimating()
+        activityIndicatorView.hidesWhenStopped = true
+        view.addSubview(activityIndicatorView)
+    }
 }
 
 // MARK: Data Bindings
@@ -282,6 +306,13 @@ private extension CityViewController {
     }
     
     func bindWeather(_ weather: WeatherEntity?) {
+        UIView.animate(withDuration: 0.3) { [weak self] in
+            self?.contentView.alpha = 0
+            self?.activityIndicatorView.alpha = 1
+        } completion: { [weak self] _ in
+            self?.activityIndicatorView.startAnimating()
+        }
+        
         for label in weatherLabels {
             weatherVStack.removeArrangedSubview(label)
             label.removeFromSuperview()
@@ -328,6 +359,13 @@ private extension CityViewController {
             }
         }
         
+        UIView.animate(withDuration: 0.3) { [weak self] in
+            self?.activityIndicatorView.alpha = 0
+            self?.contentView.alpha = 1
+        } completion: { [weak self] _ in
+            self?.activityIndicatorView.stopAnimating()
+        }
+        
         viewModel.input(.bindWeather)
     }
     
@@ -335,6 +373,13 @@ private extension CityViewController {
         guard let photo else { return }
         
         configureWeatherPhoto(photo: photo)
+    }
+}
+
+// MARK: Functions
+private extension CityViewController {
+    func refreshButtonTouchUpInside() {
+        viewModel.input(.refreshButtonTouchUpInside)
     }
 }
 

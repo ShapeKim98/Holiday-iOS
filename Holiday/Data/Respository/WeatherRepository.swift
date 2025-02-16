@@ -9,6 +9,8 @@ import Foundation
 
 final class WeatherRepository: WeatherRepositoryProtocol {
     func fetchWeather(id: Int) async throws -> WeatherEntity {
+        try await Task.sleep(nanoseconds: 1000000000)
+        
         let response = WeatherResponse.mockWeather
         return response.list[0].toEntity(name: "서울", country: "대한민국")
     }
