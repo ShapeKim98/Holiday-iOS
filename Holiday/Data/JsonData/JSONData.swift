@@ -11,7 +11,7 @@ final class JSONData {
     static let shared = JSONData()
     private let path = Bundle.main.path(forResource: "CityInfo", ofType: "json")
     
-    private var cachedData: CityData? = .mock
+    private var cachedData: CityData?
     
     private init() {}
     
