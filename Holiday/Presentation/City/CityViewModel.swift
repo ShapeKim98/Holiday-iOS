@@ -85,6 +85,8 @@ private extension CityViewModel {
                 }
                 let photo = try await self?.useCase.fetchPhoto(condition: condition)
                 self?.model.photo = photo
+            } catch {
+                print(error)
             }
         }
     }

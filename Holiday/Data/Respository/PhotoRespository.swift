@@ -8,8 +8,11 @@
 import Foundation
 
 final class PhotoRepository: PhotoRepositoryProtocol {
+    private let provider = NetworkProvider<PhotoEndPoint>()
+    
     func fetchSearchPhoto(query: String) async throws -> PhotoEntity {
-        let response = PhotoResponse.mock
+        let request = PhotoRequest(query: query)
+        let response: PhotoResponse = try await provider.request(.fetchPhotos(request))
         return response.toEntity()
     }
 }

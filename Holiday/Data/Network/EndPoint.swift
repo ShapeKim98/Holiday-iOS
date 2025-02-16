@@ -12,6 +12,6 @@ import Alamofire
 protocol EndPoint {
     var path: String { get }
     var method: HTTPMethod { get }
-    var headers: HTTPHeaders? { get }
+    var headers: HTTPHeaders { get }
     var decoder: JSONDecoder { get }
 }
