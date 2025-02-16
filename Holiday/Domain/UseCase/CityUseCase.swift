@@ -19,8 +19,8 @@ final class CityUseCase {
         self.photoRepository = photoRepository
     }
     
-    func fetchWeather(id: Int) async throws -> WeatherEntity {
-        return try await weatherRepository.fetchWeather(id: id)
+    func fetchWeather() async throws -> WeatherEntity {
+        return try await weatherRepository.fetchWeather()
     }
     
     func fetchPhoto(condition: String) async throws -> PhotoEntity {

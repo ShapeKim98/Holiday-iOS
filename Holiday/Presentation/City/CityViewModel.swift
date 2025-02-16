@@ -69,7 +69,7 @@ private extension CityViewModel {
         self.model.photo = nil
         Task { [weak self] in
             do {
-                let weather = try await self?.useCase.fetchWeather(id: 1835848)
+                let weather = try await self?.useCase.fetchWeather()
                 self?.model.weather = weather
             } catch {
                 print(error)
