@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct WeatherEntity {
+struct WeatherEntity: Equatable {
     let id: Int
     let date: Date
     let name: String
