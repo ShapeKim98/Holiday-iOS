@@ -72,7 +72,7 @@ private extension CityViewModel {
                 let weather = try await self?.useCase.fetchWeather(id: 1835848)
                 self?.model.weather = weather
             } catch {
-                
+                print(error)
             }
         }
     }

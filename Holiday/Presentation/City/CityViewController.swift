@@ -359,13 +359,6 @@ private extension CityViewController {
             }
         }
         
-        UIView.animate(withDuration: 0.3) { [weak self] in
-            self?.activityIndicatorView.alpha = 0
-            self?.contentView.alpha = 1
-        } completion: { [weak self] _ in
-            self?.activityIndicatorView.stopAnimating()
-        }
-        
         viewModel.input(.bindWeather)
     }
     
@@ -373,6 +366,13 @@ private extension CityViewController {
         guard let photo else { return }
         
         configureWeatherPhoto(photo: photo)
+        
+        UIView.animate(withDuration: 0.3) { [weak self] in
+            self?.activityIndicatorView.alpha = 0
+            self?.contentView.alpha = 1
+        } completion: { [weak self] _ in
+            self?.activityIndicatorView.stopAnimating()
+        }
     }
 }
 
