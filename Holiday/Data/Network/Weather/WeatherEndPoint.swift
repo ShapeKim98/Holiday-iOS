@@ -11,16 +11,20 @@ import Alamofire
 
 enum WeatherEndPoint: EndPoint, URLRequestConvertible {
     case fetchWeather(_ model: WeatherRequest)
+    case fetchForecast(_ model: WeatherRequest)
     
     var path: String {
         switch self {
         case .fetchWeather: return "/group"
+        case .fetchForecast: return "/forecast"
         }
     }
     
     var method: HTTPMethod {
         switch self {
-        case .fetchWeather: return .get
+        case .fetchWeather,
+             .fetchForecast:
+            return .get
         }
     }
     
@@ -43,7 +47,8 @@ enum WeatherEndPoint: EndPoint, URLRequestConvertible {
         request.httpMethod = method.rawValue
         request.headers = headers
         switch self {
-        case let .fetchWeather(model):
+        case let .fetchWeather(model),
+             let .fetchForecast(model):
             request = try URLEncodedFormParameterEncoder().encode(model, into: request)
         }
         

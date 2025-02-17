@@ -27,23 +27,6 @@ extension WeatherResponse.ListItem {
         let sunrise: Date
         let sunset: Date
     }
-    
-    struct Weather: Decodable {
-        let description: String
-        let icon: String
-    }
-    
-    struct Main: Decodable {
-        let temp: Double
-        let feelsLike: Double
-        let tempMin: Double
-        let tempMax: Double
-        let humidity: Double
-    }
-    
-    struct Wind: Decodable {
-        let speed: Double
-    }
 }
 
 extension WeatherResponse.ListItem {
@@ -75,19 +58,19 @@ extension WeatherResponse {
                 sunset: Date(timeIntervalSince1970: 1739610640)
             ),
             weather: [
-                WeatherResponse.ListItem.Weather(
+                Weather(
                     description: "broken clouds",
                     icon: "04n"
                 )
             ],
-            main: WeatherResponse.ListItem.Main(
+            main: Main(
                 temp: 3,
                 feelsLike: 3,
                 tempMin: 3,
                 tempMax: 3,
                 humidity: 81
             ),
-            wind: WeatherResponse.ListItem.Wind(
+            wind: Wind(
                 speed: 1.02
             ),
             dt: Date(timeIntervalSince1970: 1739621356),

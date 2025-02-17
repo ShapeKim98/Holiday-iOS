@@ -1,19 +1,16 @@
 //
-//  Weather.swift
+//  ForecastEntity.swift
 //  Holiday
 //
-//  Created by 김도형 on 2/15/25.
+//  Created by 김도형 on 2/18/25.
 //
 
 import Foundation
 
-struct WeatherEntity: Equatable {
-    let id: Int
+struct ForecastEntity: Equatable {
     let date: Date
     let name: String
     let country: String
-    let sunrise: Date
-    let sunset: Date
     let description: [String]
     let icon: [String]
     let temp: Double
