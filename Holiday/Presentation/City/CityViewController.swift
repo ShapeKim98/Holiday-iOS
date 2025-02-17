@@ -213,15 +213,9 @@ private extension CityViewController {
         }
         
         minMaxTempLabel.font = .systemFont(ofSize: 14)
-        let blurEffect = UIBlurEffect(style: .systemMaterial)
-        let vibrancyEffect = UIVibrancyEffect(blurEffect: blurEffect, style: .secondaryLabel)
-        let vibrancyView = UIVisualEffectView(effect: vibrancyEffect)
-        vibrancyView.contentView.addSubview(minMaxTempLabel)
+        minMaxTempLabel.textColor = .secondaryLabel
+        background.addSubview(minMaxTempLabel)
         minMaxTempLabel.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-        background.addSubview(vibrancyView)
-        vibrancyView.snp.makeConstraints { make in
             make.leading.equalTo(tempLabel.snp.trailing).offset(8)
             make.trailing.equalToSuperview().inset(12)
             make.bottom.equalTo(tempLabel.snp.bottom)
@@ -302,27 +296,52 @@ private extension CityViewController {
     }
     
     func updateTempLabel(temp: Double, tempMin: Double, tempMax: Double) {
+        let tempColor = tempColor(temp)
         let temp = String(format: "%.1f°", temp)
         tempLabel.attributedText = NSAttributedString(
             string: "현재 온도는 \(temp) 입니다",
             attributes: [.font: UIFont.systemFont(ofSize: 16)]
         ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            [
+                .font: UIFont.systemFont(ofSize: 16, weight: .bold),
+                .foregroundColor: tempColor
+            ],
             at: temp
         )
         
-        let tempMin = String(format: "%.1f°C", tempMin)
-        let tempMax = String(format: "%.1f°C", tempMax)
-        minMaxTempLabel.text = "최저\(tempMin) 최고\(tempMax)"
+        let tempMinColor = self.tempColor(tempMin)
+        let tempMaxColor = self.tempColor(tempMax)
+        let tempMin = String(format: "%.1f°", tempMin)
+        let tempMax = String(format: "%.1f°", tempMax)
+        let minAttributedString = NSAttributedString(
+            string: "최저\(tempMin)"
+        ).addAttributes(
+            [.foregroundColor: tempMinColor],
+            at: tempMin
+        )
+        let maxAttributedString = NSAttributedString(
+            string: "최고\(tempMax)"
+        ).addAttributes(
+            [.foregroundColor: tempMaxColor],
+            at: tempMax
+        )
+        let attributedText = NSMutableAttributedString(attributedString: minAttributedString)
+        attributedText.append(NSAttributedString(string: " "))
+        attributedText.append(maxAttributedString)
+        minMaxTempLabel.attributedText = attributedText
     }
     
     func updateFeelsLikeLabel(feelsLike: Double) {
+        let color = tempColor(feelsLike)
         let feelsLike = String(format: "%.1f°", feelsLike)
         let text = NSAttributedString(
             string: "체감 온도는 \(feelsLike)입니다",
             attributes: [.font: UIFont.systemFont(ofSize: 16)]
         ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            [
+                .font: UIFont.systemFont(ofSize: 16, weight: .bold),
+                .foregroundColor: color
+            ],
             at: feelsLike
         )
         feelsLikeLabel.attributedText = text
@@ -462,6 +481,11 @@ private extension CityViewController {
     
     func searchButtonTouchUpInside() {
         delegate?.searchButtonTouchUpInside()
+    }
+    
+    func tempColor(_ temp: Double) -> UIColor {
+        let color: UIColor = (temp > 30) ? .systemOrange : ((temp < 0) ? .systemBlue : .label)
+        return color
     }
 }
 
