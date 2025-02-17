@@ -36,8 +36,8 @@ class CityCollectionViewCell: UICollectionViewCell {
         nameLabel.text = weather.name
         countryLabel.text = weather.country
         
-        let tempMinColor = self.tempColor(weather.tempMin)
-        let tempMaxColor = self.tempColor(weather.tempMax)
+        let tempMinColor = self.tempColor(weather.tempMin, defaultColor: .secondaryLabel)
+        let tempMaxColor = self.tempColor(weather.tempMax, defaultColor: .secondaryLabel)
         let tempMin = String(format: "%.1f°", weather.tempMin)
         let tempMax = String(format: "%.1f°", weather.tempMax)
         let minAttributedString = NSAttributedString(
@@ -61,8 +61,8 @@ class CityCollectionViewCell: UICollectionViewCell {
         tempLabel.textColor = tempColor(weather.temp)
     }
     
-    private func tempColor(_ temp: Double) -> UIColor {
-        let color: UIColor = (temp > 30) ? .systemOrange : ((temp < 0) ? .systemBlue : .label)
+    private func tempColor(_ temp: Double, defaultColor: UIColor = .label) -> UIColor {
+        let color: UIColor = (temp > 30) ? .systemOrange : ((temp < 0) ? .systemBlue : defaultColor)
         return color
     }
 }

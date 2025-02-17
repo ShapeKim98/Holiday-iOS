@@ -309,8 +309,8 @@ private extension CityViewController {
             at: temp
         )
         
-        let tempMinColor = self.tempColor(tempMin)
-        let tempMaxColor = self.tempColor(tempMax)
+        let tempMinColor = self.tempColor(tempMin, defaultColor: .secondaryLabel)
+        let tempMaxColor = self.tempColor(tempMax, defaultColor: .secondaryLabel)
         let tempMin = String(format: "%.1f°", tempMin)
         let tempMax = String(format: "%.1f°", tempMax)
         let minAttributedString = NSAttributedString(
@@ -483,8 +483,8 @@ private extension CityViewController {
         delegate?.searchButtonTouchUpInside()
     }
     
-    func tempColor(_ temp: Double) -> UIColor {
-        let color: UIColor = (temp > 30) ? .systemOrange : ((temp < 0) ? .systemBlue : .label)
+    func tempColor(_ temp: Double, defaultColor: UIColor = .label) -> UIColor {
+        let color: UIColor = (temp > 30) ? .systemOrange : ((temp < 0) ? .systemBlue : defaultColor)
         return color
     }
 }
