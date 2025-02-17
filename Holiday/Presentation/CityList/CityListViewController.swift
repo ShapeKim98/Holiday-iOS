@@ -9,6 +9,10 @@ import UIKit
 
 import SnapKit
 
+protocol CityListViewControllerDelegate: AnyObject {
+    func collectionViewDidSelectItemAt(_ weather: WeatherEntity)
+}
+
 final class CityListViewController: UIViewController {
     private let viewModel: CityListViewModel
     private lazy var collectionView: UICollectionView = {
@@ -16,6 +20,8 @@ final class CityListViewController: UIViewController {
     }()
     private let activityIndicatorView = UIActivityIndicatorView(style: .large)
     private let emptyLabel = UILabel()
+    
+    weak var delegate: CityListViewControllerDelegate?
     
     init(viewModel: CityListViewModel) {
         self.viewModel = viewModel
@@ -43,6 +49,7 @@ final class CityListViewController: UIViewController {
 private extension CityListViewController {
     func configureUI() {
         view.backgroundColor = .systemGray6
+        navigationItem.largeTitleDisplayMode = .never
         
         configureSearchController()
         
@@ -190,6 +197,11 @@ extension CityListViewController: UICollectionViewDelegate,
     
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         viewModel.input(.tableViewWillDisplay(row: indexPath.item))
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let weather = viewModel.model.weathers[indexPath.item]
+        delegate?.collectionViewDidSelectItemAt(weather)
     }
 }
 

@@ -8,7 +8,7 @@
 import Foundation
 
 final class DIContainer {
-    let shared = DIContainer()
+    static let shared = DIContainer()
     
     private init() { }
     

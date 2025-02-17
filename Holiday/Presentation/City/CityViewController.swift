@@ -10,15 +10,29 @@ import UIKit
 import Kingfisher
 import SnapKit
 
+protocol CityViewControllerDelegate: AnyObject {
+    func searchButtonTouchUpInside()
+}
+
 final class CityViewController: UIViewController {
     private let dateLabel = UILabel()
     private let weatherVStack = UIStackView()
     private let activityIndicatorView = UIActivityIndicatorView(style: .large)
-    private var weatherLabels: [UIView] = []
+    private let conditionIcon = UIImageView()
+    private let conditionLabel = UILabel()
+    private let tempLabel = UILabel()
+    private let minMaxTempLabel = UILabel()
+    private let feelsLikeLabel = UILabel()
+    private let sunTimeLabel = UILabel()
+    private let humidityWindLabel = UILabel()
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+    private let photoImageView = UIImageView()
+    private let todayPhotoLabel = UILabel()
     
     private let viewModel: CityViewModel
+    
+    weak var delegate: CityViewControllerDelegate?
     
     init(viewModel: CityViewModel) {
         self.viewModel = viewModel
@@ -32,7 +46,7 @@ final class CityViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = .systemGray
+        view.backgroundColor = .systemGray6
         
         configureNavigation()
         
@@ -43,6 +57,10 @@ final class CityViewController: UIViewController {
         configureLayout()
         
         viewModel.input(.viewDidLoad)
+    }
+    
+    func collectionViewDidSelectItemAt(_ weather: WeatherEntity) {
+        viewModel.input(.collectionViewDidSelectItemAt(weather))
     }
 }
 
@@ -58,6 +76,18 @@ private extension CityViewController {
         configureWeatherVStack()
         
         configureActivityIndicatorView()
+        
+        configureWeatherConditionLabel()
+        
+        configureWeatherTempLabel()
+        
+        configureWeatherFeelsLikeLabel()
+        
+        configureWeatherSunTimeLabel()
+        
+        configureWeatherHumidityWindLabel()
+        
+        configureWeatherPhoto()
     }
     
     func configureLayout() {
@@ -82,8 +112,8 @@ private extension CityViewController {
             make.bottom.equalToSuperview()
         }
         
-        for label in weatherLabels {
-            label.snp.makeConstraints { make in
+        weatherVStack.subviews.forEach { view in
+            view.snp.makeConstraints { make in
                 make.leading.equalToSuperview()
             }
         }
@@ -95,8 +125,14 @@ private extension CityViewController {
     
     func configureNavigation() {
         navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.largeTitleDisplayMode = .automatic
-        navigationItem.rightBarButtonItems = [
+        navigationItem.largeTitleDisplayMode = .always
+        navigationController?.navigationBar.topItem?.rightBarButtonItems = [
+            UIBarButtonItem(
+                systemItem: .search,
+                primaryAction: UIAction { [weak self] _ in
+                    self?.searchButtonTouchUpInside()
+                }
+            ),
             UIBarButtonItem(
                 systemItem: .refresh,
                 primaryAction: UIAction { [weak self] _ in
@@ -129,146 +165,77 @@ private extension CityViewController {
         contentView.addSubview(weatherVStack)
     }
     
-    func configureWeatherConditionLabel(iconName: String, condition: String) {
+    func configureWeatherConditionLabel() {
         let background = configureWeatherLabelBackground()
         
-        let icon = UIImageView()
-        let url = URL(string: "https://openweathermap.org/img/wn/\(iconName)@2x.png")
-        icon.kf.setImage(with: url)
-        background.addSubview(icon)
-        icon.snp.makeConstraints { make in
+        background.addSubview(conditionIcon)
+        conditionIcon.snp.makeConstraints { make in
             make.size.equalTo(40)
             make.leading.equalToSuperview().inset(12)
         }
         
-        let description = NSAttributedString(
-            string: "오늘의 날씨는 \(condition) 입니다",
-            attributes: [.font: UIFont.systemFont(ofSize: 16)]
-        ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
-            at: condition
-        )
-        let label = UILabel()
-        label.attributedText = description
-        label.textColor = .label
-        background.addSubview(label)
-        label.snp.makeConstraints { make in
-            make.leading.equalTo(icon.snp.trailing).offset(8)
+        conditionLabel.textColor = .label
+        background.addSubview(conditionLabel)
+        conditionLabel.snp.makeConstraints { make in
+            make.leading.equalTo(conditionIcon.snp.trailing).offset(8)
             make.trailing.equalToSuperview().inset(12)
             make.verticalEdges.equalToSuperview().inset(16)
-            make.centerY.equalTo(icon)
+            make.centerY.equalTo(conditionIcon)
         }
         weatherVStack.addArrangedSubview(background)
-        weatherLabels.append(background)
     }
     
-    func configureWeatherTempLabel(temp: Double, tempMin: Double, tempMax: Double) {
+    func configureWeatherTempLabel() {
         let background = configureWeatherLabelBackground()
-        let label = UILabel()
-        let temp = String(format: "%.1f°", temp)
-        label.attributedText = NSAttributedString(
-            string: "현재 온도는 \(temp) 입니다",
-            attributes: [.font: UIFont.systemFont(ofSize: 16)]
-        ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
-            at: temp
-        )
-        background.addSubview(label)
-        label.snp.makeConstraints { make in
+        
+        background.addSubview(tempLabel)
+        tempLabel.snp.makeConstraints { make in
             make.leading.verticalEdges.equalToSuperview().inset(16)
         }
         
-        let tempMin = String(format: "%.1f°C", tempMin)
-        let tempMax = String(format: "%.1f°C", tempMax)
-        let minMaxLabel = UILabel()
-        minMaxLabel.text = "최저\(tempMin) 최고\(tempMax)"
-        minMaxLabel.font = .systemFont(ofSize: 14)
-        minMaxLabel.textColor = .secondaryLabel
-        background.addSubview(minMaxLabel)
-        minMaxLabel.snp.makeConstraints { make in
-            make.leading.equalTo(label.snp.trailing).offset(8)
+        minMaxTempLabel.font = .systemFont(ofSize: 14)
+        minMaxTempLabel.textColor = .secondaryLabel
+        background.addSubview(minMaxTempLabel)
+        minMaxTempLabel.snp.makeConstraints { make in
+            make.leading.equalTo(tempLabel.snp.trailing).offset(8)
             make.trailing.equalToSuperview().inset(12)
-            make.bottom.equalTo(label.snp.bottom)
+            make.bottom.equalTo(tempLabel.snp.bottom)
         }
         weatherVStack.addArrangedSubview(background)
-        weatherLabels.append(background)
     }
     
-    func configureWeatherFeelsLikeLabel(feelsLike: Double) {
-        let feelsLike = String(format: "%.1f°", feelsLike)
-        let text = NSAttributedString(
-            string: "체감 온도는 \(feelsLike)입니다",
-            attributes: [.font: UIFont.systemFont(ofSize: 16)]
-        ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
-            at: feelsLike
-        )
-        let label = configureWeatherLabel(text: text)
-        weatherVStack.addArrangedSubview(label)
-        weatherLabels.append(label)
+    func configureWeatherFeelsLikeLabel() {
+        configureWeatherLabel(label: feelsLikeLabel)
     }
     
-    func configureWeatherSunTimeLabel(sunrise: Date, sunset: Date) {
-        let sunrise = (sunrise).toString(.a_HH시mm분)
-        let sunset = (sunset).toString(.a_HH시mm분)
-        let text = NSAttributedString(
-            string: "서울의 일출 시각은 \(sunrise), 일몰 시각은 \(sunset) 입니다",
-            attributes: [.font: UIFont.systemFont(ofSize: 16)]
-        ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
-            at: sunrise, sunset
-        )
-        let label = configureWeatherLabel(text: text)
-        weatherVStack.addArrangedSubview(label)
-        weatherLabels.append(label)
+    func configureWeatherSunTimeLabel() {
+        configureWeatherLabel(label: sunTimeLabel)
     }
     
-    func configureWeatherHumidityWindLabel(humidity: Double, wind: Double) {
-        let humidity = "\(humidity)%"
-        let wind = String(format: "%.2fm/s", wind)
-        let text = NSAttributedString(
-            string: "습도는 \(humidity) 이고, 풍속은 \(wind)입니다",
-            attributes: [.font: UIFont.systemFont(ofSize: 16)]
-        ).addAttributes(
-            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
-            at: humidity, wind
-        )
-        let label = configureWeatherLabel(text: text)
-        weatherVStack.addArrangedSubview(label)
-        weatherLabels.append(label)
+    func configureWeatherHumidityWindLabel() {
+        configureWeatherLabel(label: humidityWindLabel)
     }
     
-    func configureWeatherLabel(text: NSAttributedString, lines: Int = 0) -> UIView {
+    func configureWeatherLabel(label: UILabel, lines: Int = 0) {
         let background = configureWeatherLabelBackground()
-        let label = UILabel()
-        label.attributedText = text
         background.addSubview(label)
         label.snp.makeConstraints { $0.edges.equalToSuperview().inset(16) }
         label.numberOfLines = lines
-        return background
+        weatherVStack.addArrangedSubview(background)
     }
     
-    func configureWeatherPhoto(photo: PhotoEntity) {
+    func configureWeatherPhoto() {
         let background = configureWeatherLabelBackground()
-        let label = UILabel()
-        label.text = "오늘의 사진"
-        label.font = .systemFont(ofSize: 16)
-        background.addSubview(label)
-        label.snp.makeConstraints { make in
+        todayPhotoLabel.text = "오늘의 사진"
+        todayPhotoLabel.font = .systemFont(ofSize: 16)
+        background.addSubview(todayPhotoLabel)
+        todayPhotoLabel.snp.makeConstraints { make in
             make.leading.top.equalToSuperview().inset(12)
         }
-        let image = UIImageView()
-        image.kf.setImage(with: photo.url)
-        background.addSubview(image)
-        image.snp.makeConstraints { make in
-            make.top.equalTo(label.snp.bottom).offset(8)
-            make.horizontalEdges.bottom.equalToSuperview().inset(12)
-            make.height.equalTo(image.snp.width).multipliedBy(photo.width / photo.height)
-        }
-        image.layer.cornerRadius = 8
-        image.clipsToBounds = true
+        background.addSubview(photoImageView)
+        photoImageView.layer.cornerRadius = 8
+        photoImageView.clipsToBounds = true
         weatherVStack.addArrangedSubview(background)
-        weatherLabels.append(background)
     }
     
     func configureWeatherLabelBackground() -> UIView {
@@ -279,13 +246,92 @@ private extension CityViewController {
     }
     
     func configureNavigationTitle(_ title: String) {
-        navigationItem.title = title
+        navigationController?.navigationBar.topItem?.title = title
     }
     
     func configureActivityIndicatorView() {
         activityIndicatorView.startAnimating()
         activityIndicatorView.hidesWhenStopped = true
         view.addSubview(activityIndicatorView)
+    }
+    
+    func updateConditionLabel(iconName: String, condition: String) {
+        let url = URL(string: "https://openweathermap.org/img/wn/\(iconName)@2x.png")
+        conditionIcon.kf.setImage(with: url)
+        let description = NSAttributedString(
+            string: "오늘의 날씨는 \(condition) 입니다",
+            attributes: [.font: UIFont.systemFont(ofSize: 16)]
+        ).addAttributes(
+            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            at: condition
+        )
+        conditionLabel.attributedText = description
+    }
+    
+    func updateTempLabel(temp: Double, tempMin: Double, tempMax: Double) {
+        let temp = String(format: "%.1f°", temp)
+        tempLabel.attributedText = NSAttributedString(
+            string: "현재 온도는 \(temp) 입니다",
+            attributes: [.font: UIFont.systemFont(ofSize: 16)]
+        ).addAttributes(
+            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            at: temp
+        )
+        
+        let tempMin = String(format: "%.1f°C", tempMin)
+        let tempMax = String(format: "%.1f°C", tempMax)
+        minMaxTempLabel.text = "최저\(tempMin) 최고\(tempMax)"
+    }
+    
+    func updateFeelsLikeLabel(feelsLike: Double) {
+        let feelsLike = String(format: "%.1f°", feelsLike)
+        let text = NSAttributedString(
+            string: "체감 온도는 \(feelsLike)입니다",
+            attributes: [.font: UIFont.systemFont(ofSize: 16)]
+        ).addAttributes(
+            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            at: feelsLike
+        )
+        feelsLikeLabel.attributedText = text
+    }
+    
+    func updateSunTimeLabel(sunrise: Date, sunset: Date) {
+        let sunrise = (sunrise).toString(.a_HH시mm분)
+        let sunset = (sunset).toString(.a_HH시mm분)
+        let text = NSAttributedString(
+            string: "서울의 일출 시각은 \(sunrise), 일몰 시각은 \(sunset) 입니다",
+            attributes: [.font: UIFont.systemFont(ofSize: 16)]
+        ).addAttributes(
+            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            at: sunrise, sunset
+        )
+        sunTimeLabel.attributedText = text
+    }
+    
+    func updateHumidityWindLabel(humidity: Double, wind: Double) {
+        let humidity = "\(humidity)%"
+        let wind = String(format: "%.2fm/s", wind)
+        let text = NSAttributedString(
+            string: "습도는 \(humidity) 이고, 풍속은 \(wind)입니다",
+            attributes: [.font: UIFont.systemFont(ofSize: 16)]
+        ).addAttributes(
+            [.font: UIFont.systemFont(ofSize: 16, weight: .bold)],
+            at: humidity, wind
+        )
+        humidityWindLabel.attributedText = text
+    }
+    
+    func updatePhotoImage(photo: PhotoEntity) {
+        photoImageView.kf.setImage(with: photo.url)
+        photoImageView.snp.remakeConstraints { make in
+            make.top.equalTo(todayPhotoLabel.snp.bottom).offset(8)
+            make.horizontalEdges.bottom.equalToSuperview().inset(12)
+            if photo.height < photo.width {
+                make.height.equalTo(photoImageView.snp.width).multipliedBy(photo.width / photo.height)
+            } else {
+                make.height.equalTo(photoImageView.snp.width).multipliedBy(photo.height / photo.width)
+            }
+        }
     }
 }
 
@@ -300,24 +346,15 @@ private extension CityViewController {
                     self?.bindWeather(weather)
                 case let .photo(photo):
                     self?.bindPhoto(photo)
+                case let .isLoading(isLoading):
+                    self?.bindIsLoading(isLoading)
                 }
             }
         }
     }
     
     func bindWeather(_ weather: WeatherEntity?) {
-        UIView.animate(withDuration: 0.3) { [weak self] in
-            self?.contentView.alpha = 0
-            self?.activityIndicatorView.alpha = 1
-        } completion: { [weak self] _ in
-            self?.activityIndicatorView.startAnimating()
-        }
-        
-        for label in weatherLabels {
-            weatherVStack.removeArrangedSubview(label)
-            label.removeFromSuperview()
-        }
-        weatherLabels.removeAll()
+        print(#function)
         
         guard let weather else { return }
         
@@ -330,31 +367,31 @@ private extension CityViewController {
             make.top.equalToSuperview().offset(20)
         }
         
-        configureWeatherConditionLabel(
+        updateConditionLabel(
             iconName: weather.icon.first ?? "",
             condition: weather.description.first ?? ""
         )
         
-        configureWeatherTempLabel(
+        updateTempLabel(
             temp: weather.temp,
             tempMin: weather.tempMin,
             tempMax: weather.tempMax
         )
         
-        configureWeatherFeelsLikeLabel(feelsLike: weather.feelsLike)
+        updateFeelsLikeLabel(feelsLike: weather.feelsLike)
         
-        configureWeatherSunTimeLabel(
+        updateSunTimeLabel(
             sunrise: weather.sunrise,
             sunset: weather.sunset
         )
         
-        configureWeatherHumidityWindLabel(
+        updateHumidityWindLabel(
             humidity: weather.humidity,
             wind: weather.windSpeed
         )
         
-        for label in weatherLabels {
-            label.snp.makeConstraints { make in
+        weatherVStack.subviews.forEach { view in
+            view.snp.updateConstraints { make in
                 make.leading.equalToSuperview()
             }
         }
@@ -364,14 +401,21 @@ private extension CityViewController {
     
     func bindPhoto(_ photo: PhotoEntity?) {
         guard let photo else { return }
+        print(#function)
         
-        configureWeatherPhoto(photo: photo)
-        
+        updatePhotoImage(photo: photo)
+    }
+    
+    func bindIsLoading(_ isLoading: Bool) {
         UIView.animate(withDuration: 0.3) { [weak self] in
-            self?.activityIndicatorView.alpha = 0
-            self?.contentView.alpha = 1
+            self?.contentView.alpha = isLoading ? 0 : 1
+            self?.activityIndicatorView.alpha = isLoading ? 1 : 0
         } completion: { [weak self] _ in
-            self?.activityIndicatorView.stopAnimating()
+            if isLoading {
+                self?.activityIndicatorView.startAnimating()
+            } else {
+                self?.activityIndicatorView.stopAnimating()
+            }
         }
     }
 }
@@ -380,6 +424,10 @@ private extension CityViewController {
 private extension CityViewController {
     func refreshButtonTouchUpInside() {
         viewModel.input(.refreshButtonTouchUpInside)
+    }
+    
+    func searchButtonTouchUpInside() {
+        delegate?.searchButtonTouchUpInside()
     }
 }
 

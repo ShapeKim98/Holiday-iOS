@@ -22,4 +22,8 @@ struct WeatherEntity: Equatable {
     let tempMax: Double
     let humidity: Double
     let windSpeed: Double
+    
+    static func == (lhs: WeatherEntity, rhs: WeatherEntity) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
