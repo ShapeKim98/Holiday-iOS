@@ -47,6 +47,8 @@ class CityCollectionViewCell: UICollectionViewCell {
 // MARK: Configure Views
 private extension CityCollectionViewCell {
     func configureUI() {
+        contentView.backgroundColor = .systemBackground
+        contentView.layer.cornerRadius = 8
         contentView.addSubview(conditionImageView)
         
         configureNameLabel()

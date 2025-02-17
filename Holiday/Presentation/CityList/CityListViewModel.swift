@@ -17,6 +17,8 @@ final class CityListViewModel: ViewModel {
     
     enum Output {
         case weathers([WeatherEntity])
+        case isLoading(Bool)
+        case query(String)
     }
     
     struct Model {
@@ -26,6 +28,18 @@ final class CityListViewModel: ViewModel {
                 continuation?.yield(.weathers(weathers))
             }
         }
+        var isLoading = true {
+            didSet {
+                guard oldValue != isLoading else { return }
+                continuation?.yield(.isLoading(isLoading))
+            }
+        }
+        var query: String = "" {
+            didSet {
+                guard oldValue != query else { return }
+                continuation?.yield(.query(query))
+            }
+        }
         
         fileprivate var continuation: AsyncStream<Output>.Continuation?
     }
@@ -33,7 +47,6 @@ final class CityListViewModel: ViewModel {
     private(set) var model = Model()
     private var page = 0
     private var isPaging = false
-    private var query: String = ""
     
     private let useCase: CityListUseCase
     
@@ -61,9 +74,9 @@ final class CityListViewModel: ViewModel {
             guard contains else { return }
             paginationCityList()
         case .updateSearchResults(text: let text):
+            guard let text, model.query != text else { return }
             page = 0
-            guard let text else { return }
-            query = text
+            model.query = text
             fetchCityList()
         }
     }
@@ -73,9 +86,11 @@ private extension CityListViewModel {
     func fetchCityList() {
         let page = self.page
         let useCase = self.useCase
-        let query = self.query
+        let query = self.model.query
         
         Task { [weak self] in
+            self?.model.isLoading = true
+            defer { self?.model.isLoading = false }
             do {
                 var response: [WeatherEntity]
                 if query.isEmpty {
@@ -96,7 +111,7 @@ private extension CityListViewModel {
         guard !isPaging else { return }
         let page = self.page
         let useCase = self.useCase
-        let query = self.query
+        let query = self.model.query
         
         isPaging = true
         Task { [weak self] in
