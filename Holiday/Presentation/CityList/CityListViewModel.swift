@@ -12,6 +12,7 @@ final class CityListViewModel: ViewModel {
         case viewDidLoad
         case tableViewWillDisplay(row: Int)
         case tableViewPrefetchRowsAt(rows: [Int])
+        case updateSearchResults(text: String?)
     }
     
     enum Output {
@@ -32,6 +33,7 @@ final class CityListViewModel: ViewModel {
     private(set) var model = Model()
     private var page = 0
     private var isPaging = false
+    private var query: String = ""
     
     private let useCase: CityListUseCase
     
@@ -50,7 +52,7 @@ final class CityListViewModel: ViewModel {
     func input(_ action: Input) {
         switch action {
         case .viewDidLoad:
-            paginationCityList()
+            fetchCityList()
         case .tableViewWillDisplay(let row):
             guard model.weathers.count == row + 2 else { return }
             paginationCityList()
@@ -58,22 +60,56 @@ final class CityListViewModel: ViewModel {
             let contains = rows.contains(where: { model.weathers.count == $0 + 2 })
             guard contains else { return }
             paginationCityList()
+        case .updateSearchResults(text: let text):
+            page = 0
+            guard let text else { return }
+            query = text
+            fetchCityList()
         }
     }
 }
 
 private extension CityListViewModel {
-    func paginationCityList() {
-        guard !isPaging else { return }
-        
+    func fetchCityList() {
         let page = self.page
         let useCase = self.useCase
+        let query = self.query
+        
+        Task { [weak self] in
+            do {
+                var response: [WeatherEntity]
+                if query.isEmpty {
+                    response = try await useCase.fetchWeatherGroup(page: page, size: 20)
+                } else {
+                    response = try await useCase.fetchWeatherGroup(query: query, page: page, size: 20)
+                }
+                self?.model.weathers = response
+                guard !response.isEmpty else { return }
+                self?.page += 1
+            } catch {
+                print(error)
+            }
+        }
+    }
+    
+    func paginationCityList() {
+        guard !isPaging else { return }
+        let page = self.page
+        let useCase = self.useCase
+        let query = self.query
+        
         isPaging = true
         Task { [weak self] in
             defer { self?.isPaging = false }
             do {
-                let response = try await useCase.fetchWeatherGroup(page: page, size: 20)
+                var response: [WeatherEntity]
+                if query.isEmpty {
+                    response = try await useCase.fetchWeatherGroup(page: page, size: 20)
+                } else {
+                    response = try await useCase.fetchWeatherGroup(query: query, page: page, size: 20)
+                }
                 self?.model.weathers.append(contentsOf: response)
+                guard !response.isEmpty else { return }
                 self?.page += 1
             } catch {
                 print(error)

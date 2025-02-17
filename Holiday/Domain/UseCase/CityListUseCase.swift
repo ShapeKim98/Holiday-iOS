@@ -14,7 +14,11 @@ final class CityListUseCase {
         self.weatherRepository = weatherRepository
     }
     
-    func fetchWeatherGroup(page: Int, size: Int) async throws -> [WeatherEntity] {
-        try await weatherRepository.fetchWeatherGroups(page: page, size: size)
+    func fetchWeatherGroup(query: String? = nil, page: Int, size: Int) async throws -> [WeatherEntity] {
+        try await weatherRepository.fetchWeatherGroups(
+            query: query,
+            page: page,
+            size: size
+        )
     }
 }

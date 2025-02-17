@@ -33,6 +33,8 @@ final class CityListViewController: UIViewController {
         
         configureLayout()
         
+        configureSearchController()
+        
         viewModel.input(.viewDidLoad)
     }
 }
@@ -68,6 +70,17 @@ private extension CityListViewController {
         view.addSubview(collectionView)
         return collectionView
     }
+    
+    func configureSearchController() {
+        let searchController = UISearchController()
+        searchController.searchBar.placeholder = "지금, 날씨가 궁금한 곳은?"
+        searchController.searchResultsUpdater = self
+        searchController.automaticallyShowsCancelButton = false
+        searchController.hidesNavigationBarDuringPresentation = false
+        
+        navigationItem.hidesSearchBarWhenScrolling = false
+        navigationItem.searchController = searchController
+    }
 }
 
 // MARK: Data Bindins
@@ -86,6 +99,13 @@ private extension CityListViewController {
     
     func bindWeathers(_ weathers: [WeatherEntity]) {
         collectionView.reloadData()
+    }
+}
+
+extension CityListViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        let text = searchController.searchBar.text
+        viewModel.input(.updateSearchResults(text: text))
     }
 }
 
