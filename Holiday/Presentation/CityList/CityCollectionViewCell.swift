@@ -31,7 +31,10 @@ class CityCollectionViewCell: UICollectionViewCell {
     
     func forRowAt(_ weather: WeatherEntity) {
         let url = URL(string: "https://openweathermap.org/img/wn/\(weather.icon.first ?? "")@2x.png")
-        conditionImageView.kf.setImage(with: url)
+        conditionImageView.kf.setImage(
+            with: url,
+            options: [.transition(.fade(0.3))]
+        )
         
         nameLabel.text = weather.name
         countryLabel.text = weather.country

@@ -260,7 +260,7 @@ private extension CityViewController {
     func configureWeatherLabelBackground() -> UIView {
         let background = UIView()
         background.backgroundColor = .clear
-        let blurEffect = UIBlurEffect(style: .prominent)
+        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
         let blurView = UIVisualEffectView(effect: blurEffect)
         blurView.layer.cornerRadius = 8
         blurView.clipsToBounds = true
@@ -284,7 +284,10 @@ private extension CityViewController {
     
     func updateConditionLabel(iconName: String, condition: String) {
         let url = URL(string: "https://openweathermap.org/img/wn/\(iconName)@2x.png")
-        conditionIcon.kf.setImage(with: url)
+        conditionIcon.kf.setImage(
+            with: url,
+            options: [.transition(.fade(0.3))]
+        )
         let description = NSAttributedString(
             string: "오늘의 날씨는 \(condition) 입니다",
             attributes: [.font: UIFont.systemFont(ofSize: 16)]
@@ -374,8 +377,14 @@ private extension CityViewController {
     }
     
     func updatePhotoImage(photo: PhotoEntity) {
-        backgroundImageView.kf.setImage(with: photo.url)
-        photoImageView.kf.setImage(with: photo.url)
+        backgroundImageView.kf.setImage(
+            with: photo.url,
+            options: [.transition(.fade(0.3))]
+        )
+        photoImageView.kf.setImage(
+            with: photo.url,
+            options: [.transition(.fade(0.3))]
+        )
         photoImageView.snp.remakeConstraints { make in
             make.top.equalTo(todayPhotoLabel.snp.bottom).offset(8)
             make.horizontalEdges.bottom.equalToSuperview().inset(12)
