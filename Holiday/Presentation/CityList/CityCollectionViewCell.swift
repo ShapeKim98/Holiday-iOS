@@ -58,6 +58,8 @@ private extension CityCollectionViewCell {
         configureMinMaxTempLabel()
         
         configureTempLabel()
+        
+        configureConditionImageView()
     }
     
     func configureLayout() {
@@ -104,5 +106,10 @@ private extension CityCollectionViewCell {
     func configureTempLabel() {
         tempLabel.font = .systemFont(ofSize: 24, weight: .bold)
         contentView.addSubview(tempLabel)
+    }
+    
+    func configureConditionImageView() {
+        conditionImageView.contentMode = .scaleAspectFill
+        conditionImageView.clipsToBounds = true
     }
 }

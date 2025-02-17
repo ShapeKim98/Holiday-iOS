@@ -24,7 +24,7 @@ final class CityViewModel: ViewModel {
     struct Model {
         var weather: WeatherEntity? {
             didSet {
-//                guard oldValue != weather else { return }
+                guard oldValue != weather else { return }
                 continuation?.yield(.weather(weather))
             }
         }

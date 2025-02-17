@@ -12,7 +12,7 @@ import Alamofire
 struct NetworkProvider<E: URLRequestConvertible & EndPoint>: Sendable {
     func request<T: Decodable>(_ endPoint: E) async throws -> T {
 #if DEBUG
-//        try NetworkLogger.request(endPoint)
+        try NetworkLogger.request(endPoint)
 #endif
         let response = await AF.request(endPoint)
         .validate(statusCode: 200..<300)
@@ -20,7 +20,7 @@ struct NetworkProvider<E: URLRequestConvertible & EndPoint>: Sendable {
         .response
         
 #if DEBUG
-//        try NetworkLogger.response(response)
+        try NetworkLogger.response(response)
 #endif
         
         switch response.result {

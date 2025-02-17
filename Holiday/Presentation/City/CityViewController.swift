@@ -29,6 +29,7 @@ final class CityViewController: UIViewController {
     private let contentView = UIView()
     private let photoImageView = UIImageView()
     private let todayPhotoLabel = UILabel()
+    private let backgroundImageView = UIImageView()
     
     private let viewModel: CityViewModel
     
@@ -67,6 +68,8 @@ final class CityViewController: UIViewController {
 // MARK: Configure Views
 private extension CityViewController {
     func configureUI() {
+        configureBackgroundImageView()
+        
         configureScrollView()
         
         configureContentView()
@@ -91,6 +94,10 @@ private extension CityViewController {
     }
     
     func configureLayout() {
+        backgroundImageView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
         }
@@ -142,6 +149,18 @@ private extension CityViewController {
         ]
     }
     
+    func configureBackgroundImageView() {
+        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        backgroundImageView.addSubview(blurView)
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        backgroundImageView.contentMode = .scaleAspectFill
+        backgroundImageView.clipsToBounds = true
+        view.addSubview(backgroundImageView)
+    }
+    
     func configureScrollView() {
         view.addSubview(scrollView)
     }
@@ -167,7 +186,7 @@ private extension CityViewController {
     
     func configureWeatherConditionLabel() {
         let background = configureWeatherLabelBackground()
-        
+        conditionIcon.contentMode = .scaleAspectFill
         background.addSubview(conditionIcon)
         conditionIcon.snp.makeConstraints { make in
             make.size.equalTo(40)
@@ -194,9 +213,15 @@ private extension CityViewController {
         }
         
         minMaxTempLabel.font = .systemFont(ofSize: 14)
-        minMaxTempLabel.textColor = .secondaryLabel
-        background.addSubview(minMaxTempLabel)
+        let blurEffect = UIBlurEffect(style: .systemMaterial)
+        let vibrancyEffect = UIVibrancyEffect(blurEffect: blurEffect, style: .secondaryLabel)
+        let vibrancyView = UIVisualEffectView(effect: vibrancyEffect)
+        vibrancyView.contentView.addSubview(minMaxTempLabel)
         minMaxTempLabel.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        background.addSubview(vibrancyView)
+        vibrancyView.snp.makeConstraints { make in
             make.leading.equalTo(tempLabel.snp.trailing).offset(8)
             make.trailing.equalToSuperview().inset(12)
             make.bottom.equalTo(tempLabel.snp.bottom)
@@ -240,8 +265,16 @@ private extension CityViewController {
     
     func configureWeatherLabelBackground() -> UIView {
         let background = UIView()
-        background.backgroundColor = .white
+        background.backgroundColor = .clear
+        let blurEffect = UIBlurEffect(style: .prominent)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.layer.cornerRadius = 8
+        blurView.clipsToBounds = true
         background.layer.cornerRadius = 8
+        background.addSubview(blurView)
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
         return background
     }
     
@@ -322,6 +355,7 @@ private extension CityViewController {
     }
     
     func updatePhotoImage(photo: PhotoEntity) {
+        backgroundImageView.kf.setImage(with: photo.url)
         photoImageView.kf.setImage(with: photo.url)
         photoImageView.snp.remakeConstraints { make in
             make.top.equalTo(todayPhotoLabel.snp.bottom).offset(8)
