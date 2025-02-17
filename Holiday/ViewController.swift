@@ -22,6 +22,7 @@ class ViewController: UIViewController {
         addChild(cityViewController)
         view.addSubview(cityViewController.view)
         view.addConstraints(cityViewController.view.constraints)
+        navigationController?.navigationBar.tintColor = .label
         cityViewController.didMove(toParent: self)
     }
 

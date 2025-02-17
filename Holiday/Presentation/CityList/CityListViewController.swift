@@ -49,7 +49,9 @@ final class CityListViewController: UIViewController {
 private extension CityListViewController {
     func configureUI() {
         view.backgroundColor = .systemGray6
+        
         navigationItem.largeTitleDisplayMode = .never
+        navigationController?.navigationBar.topItem?.title = ""
         
         configureSearchController()
         
