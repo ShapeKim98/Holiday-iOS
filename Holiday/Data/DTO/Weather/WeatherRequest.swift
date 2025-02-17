@@ -8,7 +8,7 @@
 import Foundation
 
 struct WeatherRequest: Encodable{
-    let id: Int
+    let id: String
     let appid: String = Bundle.main.openweatherAppId
     let units: String = "metric"
 }

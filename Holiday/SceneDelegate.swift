@@ -17,10 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowScene = (scene as? UIWindowScene) else { return }
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = UINavigationController(rootViewController: CityViewController(viewModel: CityViewModel(useCase: CityUseCase(
-            weatherRepository: WeatherRepository(),
-            photoRepository: PhotoRepository()
-        ))))
+        window?.rootViewController = UINavigationController(rootViewController: CityListViewController(viewModel: CityListViewModel(useCase: CityListUseCase(weatherRepository: WeatherRepository()))))
         window?.makeKeyAndVisible()
     }
 
