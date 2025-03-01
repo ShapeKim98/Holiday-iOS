@@ -51,7 +51,6 @@ private extension CityListViewController {
         view.backgroundColor = .systemGray6
         
         navigationItem.largeTitleDisplayMode = .never
-        navigationController?.navigationBar.topItem?.title = ""
         
         configureSearchController()
         
