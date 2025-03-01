@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C94BDD4A2D639AF7008C1742 /* DGCharts in Frameworks */ = {isa = PBXBuildFile; productRef = C94BDD492D639AF7008C1742 /* DGCharts */; };
 		C94F675A2D60BD33008CBC7A /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = C94F67592D60BD33008CBC7A /* .gitignore */; };
 		C94F676D2D60C0EE008CBC7A /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = C94F676C2D60C0EE008CBC7A /* SnapKit */; };
 		C94F67702D60C0FD008CBC7A /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = C94F676F2D60C0FD008CBC7A /* Alamofire */; };
@@ -44,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C94BDD4A2D639AF7008C1742 /* DGCharts in Frameworks */,
 				C94F67732D60C109008CBC7A /* Kingfisher in Frameworks */,
 				C94F676D2D60C0EE008CBC7A /* SnapKit in Frameworks */,
 				C94F67702D60C0FD008CBC7A /* Alamofire in Frameworks */,
@@ -93,6 +95,7 @@
 				C94F676C2D60C0EE008CBC7A /* SnapKit */,
 				C94F676F2D60C0FD008CBC7A /* Alamofire */,
 				C94F67722D60C109008CBC7A /* Kingfisher */,
+				C94BDD492D639AF7008C1742 /* DGCharts */,
 			);
 			productName = Holiday;
 			productReference = C94F67312D60BCF3008CBC7A /* Holiday.app */;
@@ -126,6 +129,7 @@
 				C94F676B2D60C0EE008CBC7A /* XCRemoteSwiftPackageReference "SnapKit" */,
 				C94F676E2D60C0FD008CBC7A /* XCRemoteSwiftPackageReference "Alamofire" */,
 				C94F67712D60C109008CBC7A /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				C94BDD482D639AF7008C1742 /* XCRemoteSwiftPackageReference "Charts" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C94F67322D60BCF3008CBC7A /* Products */;
@@ -372,6 +376,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		C94BDD482D639AF7008C1742 /* XCRemoteSwiftPackageReference "Charts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ChartsOrg/Charts.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
 		C94F676B2D60C0EE008CBC7A /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
@@ -399,6 +411,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C94BDD492D639AF7008C1742 /* DGCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C94BDD482D639AF7008C1742 /* XCRemoteSwiftPackageReference "Charts" */;
+			productName = DGCharts;
+		};
 		C94F676C2D60C0EE008CBC7A /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C94F676B2D60C0EE008CBC7A /* XCRemoteSwiftPackageReference "SnapKit" */;

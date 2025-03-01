@@ -12,6 +12,9 @@ import SnapKit
 
 protocol CityViewControllerDelegate: AnyObject {
     func searchButtonTouchUpInside()
+    func updatePhotoImage(photo: PhotoEntity)
+    func bindWeather()
+    func forecastButtonTouchUpInside()
 }
 
 final class CityViewController: UIViewController {
@@ -29,7 +32,7 @@ final class CityViewController: UIViewController {
     private let contentView = UIView()
     private let photoImageView = UIImageView()
     private let todayPhotoLabel = UILabel()
-    private let backgroundImageView = UIImageView()
+    private let forecastButton = UIButton()
     
     private let viewModel: CityViewModel
     
@@ -47,7 +50,7 @@ final class CityViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = .systemGray6
+        view.backgroundColor = .clear
         
         configureNavigation()
         
@@ -68,8 +71,6 @@ final class CityViewController: UIViewController {
 // MARK: Configure Views
 private extension CityViewController {
     func configureUI() {
-        configureBackgroundImageView()
-        
         configureScrollView()
         
         configureContentView()
@@ -91,13 +92,11 @@ private extension CityViewController {
         configureWeatherHumidityWindLabel()
         
         configureWeatherPhoto()
+        
+        configureForecastButton()
     }
     
     func configureLayout() {
-        backgroundImageView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-        
         scrollView.snp.makeConstraints { make in
             make.edges.equalTo(view.safeAreaLayoutGuide)
         }
@@ -116,6 +115,11 @@ private extension CityViewController {
         weatherVStack.snp.makeConstraints { make in
             make.top.equalTo(dateLabel.snp.bottom).offset(16)
             make.horizontalEdges.equalToSuperview()
+        }
+        
+        forecastButton.snp.makeConstraints { make in
+            make.top.equalTo(weatherVStack.snp.bottom).offset(20)
+            make.centerX.equalToSuperview()
             make.bottom.equalToSuperview()
         }
         
@@ -147,18 +151,6 @@ private extension CityViewController {
                 }
             )
         ]
-    }
-    
-    func configureBackgroundImageView() {
-        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        backgroundImageView.addSubview(blurView)
-        blurView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-        backgroundImageView.contentMode = .scaleAspectFill
-        backgroundImageView.clipsToBounds = true
-        view.addSubview(backgroundImageView)
     }
     
     func configureScrollView() {
@@ -255,6 +247,23 @@ private extension CityViewController {
         photoImageView.layer.cornerRadius = 8
         photoImageView.clipsToBounds = true
         weatherVStack.addArrangedSubview(background)
+    }
+    
+    func configureForecastButton() {
+        var configuration = UIButton.Configuration.plain()
+        configuration.image = UIImage(systemName: "chevron.down")
+        configuration.title = "5일간 예보 보러가기"
+        configuration.imagePlacement = .leading
+        configuration.imagePadding = 8
+        forecastButton.configuration = configuration
+        forecastButton.tintColor = .label
+        forecastButton.addAction(
+            UIAction { [weak self] _ in
+                self?.delegate?.forecastButtonTouchUpInside()
+            },
+            for: .touchUpInside
+        )
+        contentView.addSubview(forecastButton)
     }
     
     func configureWeatherLabelBackground() -> UIView {
@@ -377,10 +386,7 @@ private extension CityViewController {
     }
     
     func updatePhotoImage(photo: PhotoEntity) {
-        backgroundImageView.kf.setImage(
-            with: photo.url,
-            options: [.transition(.fade(0.3))]
-        )
+        delegate?.updatePhotoImage(photo: photo)
         photoImageView.kf.setImage(
             with: photo.url,
             options: [.transition(.fade(0.3))]
@@ -419,6 +425,8 @@ private extension CityViewController {
         print(#function)
         
         guard let weather else { return }
+        
+        delegate?.bindWeather()
         
         configureNavigationTitle("\(weather.country), \(weather.name)")
         

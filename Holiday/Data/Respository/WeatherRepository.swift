@@ -24,6 +24,18 @@ final class WeatherRepository: WeatherRepositoryProtocol {
         )
     }
     
+    func fetchForecast(id: Int) async throws -> [ForecastEntity] {
+        let request = WeatherRequest(id: "\(id)")
+        let response: ForecastResponse = try await provider.request(.fetchForecast(request))
+        let city = try await jsonData.fetchCity(id: id)
+        return response.list.map {
+            $0.toEntity(
+                name: city?.koCityName ?? "서울",
+                country: city?.koCountryName ?? "대한민국"
+            )
+        }
+    }
+    
     func fetchWeatherGroups(query: String?, page: Int, size: Int) async throws -> [WeatherEntity] {
         var cityData: CityData
         if let query {

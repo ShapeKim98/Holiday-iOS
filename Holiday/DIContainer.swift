@@ -27,4 +27,10 @@ final class DIContainer {
             weatherRepository: self.weatherRepository
         )
     }
+    
+    func makeForecastUseCase() -> ForecastUseCase {
+        return ForecastUseCase(
+            weatherRepository: self.weatherRepository
+        )
+    }
 }

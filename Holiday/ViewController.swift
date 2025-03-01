@@ -7,9 +7,10 @@
 
 import UIKit
 
+import Kingfisher
 import SnapKit
 
-final class ViewController: UIViewController {
+final class ViewController: UIPageViewController {
     private lazy var cityViewController: CityViewController = {
         let cityUseCase = DIContainer.shared.makeCityUseCase()
         let viewModel = CityViewModel(useCase: cityUseCase)
@@ -17,23 +18,41 @@ final class ViewController: UIViewController {
         viewController.delegate = self
         return viewController
     }()
+    private lazy var forecastViewController: ForecastViewController = {
+        let forecastUseCase = DIContainer.shared.makeForecastUseCase()
+        let viewModel = ForecastViewModel(useCase: forecastUseCase)
+        let viewController = ForecastViewController(viewModel: viewModel)
+        return viewController
+    }()
     private let toastMessageView = UIView()
+    private let backgroundImageView = UIImageView()
     
     private let networkMonitor = NetworkMonitor()
     private var networkIsConnected = true {
         didSet { didSetNetworkIsConnected() }
     }
     
+    init() {
+        super.init(transitionStyle: .scroll, navigationOrientation: .vertical)
+        dataSource = self
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
-        addChild(cityViewController)
-        view.addSubview(cityViewController.view)
-        view.addConstraints(cityViewController.view.constraints)
+        
         navigationController?.navigationBar.tintColor = .label
-        cityViewController.didMove(toParent: self)
         
         configureUI()
+        
+        setViewControllers(
+            [cityViewController],
+            direction: .forward,
+            animated: true
+        )
         
         configureLayout()
         
@@ -55,14 +74,33 @@ final class ViewController: UIViewController {
 // MARK: Configure Views
 private extension ViewController {
     func configureUI() {
+        configureBackgroundImageView()
+        
         configureToastMessageView()
     }
     
     func configureLayout() {
+        backgroundImageView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
         toastMessageView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.top.equalToSuperview()
         }
+    }
+    
+    func configureBackgroundImageView() {
+        let blurEffect = UIBlurEffect(style: .systemThinMaterial)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        backgroundImageView.addSubview(blurView)
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        backgroundImageView.contentMode = .scaleAspectFill
+        backgroundImageView.clipsToBounds = true
+        view.addSubview(backgroundImageView)
+        view.sendSubviewToBack(backgroundImageView)
     }
     
     func configureToastMessageView() {
@@ -97,6 +135,21 @@ private extension ViewController {
     }
 }
 
+extension ViewController: UIPageViewControllerDataSource {
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+        guard viewController is ForecastViewController else {
+            return nil
+        }
+        return cityViewController
+    }
+    
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+        guard viewController is CityViewController else {
+            return nil
+        }
+        return forecastViewController
+    }
+}
 
 extension ViewController: CityViewControllerDelegate {
     func searchButtonTouchUpInside() {
@@ -105,6 +158,21 @@ extension ViewController: CityViewControllerDelegate {
         let viewController = CityListViewController(viewModel: viewModel)
         viewController.delegate = self
         navigationController?.pushViewController(viewController, animated: true)
+    }
+    
+    func updatePhotoImage(photo: PhotoEntity) {
+        backgroundImageView.kf.setImage(
+            with: photo.url,
+            options: [.transition(.fade(0.3))]
+        )
+    }
+    
+    func bindWeather() {
+        forecastViewController.bindWeather()
+    }
+    
+    func forecastButtonTouchUpInside() {
+        setViewControllers([forecastViewController], direction: .forward, animated: true)
     }
 }
 
