@@ -77,6 +77,12 @@ extension Observable where Element: EffectProtocol {
     }
     
     static func merge(
+        _ observables: Observable<Element>...
+    ) -> Observable<Element> {
+        return .merge(observables)
+    }
+    
+    static func merge(
         _ observables: Observable<Element.Action>...
     ) -> Observable<Element> {
         let creates = observables.map { observable in
@@ -92,5 +98,11 @@ extension Observable where Element: EffectProtocol {
             observable.map { Element.send($0) }
         }
         return .concat(creates)
+    }
+    
+    static func concatenate(
+        _ observables: Observable<Element>...
+    ) -> Observable<Element> {
+        return .concat(observables)
     }
 }

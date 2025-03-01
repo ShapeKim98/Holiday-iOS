@@ -29,7 +29,7 @@ extension Composable {
             .observe(on: MainScheduler.asyncInstance)
             .debug("\(Self.self): Received Action")
             .withUnretained(self)
-            .compactMap { this, action in
+            .map { this, action in
                 var state = this.state
                 this.reducer(&state, action)
                     .observe(on: MainScheduler.asyncInstance)
