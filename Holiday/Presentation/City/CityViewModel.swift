@@ -7,43 +7,28 @@
 
 import Foundation
 
-final class CityViewModel: ViewModel {
-    enum Input {
+import RxSwift
+import RxCocoa
+
+@MainActor
+final class CityViewModel: Composable {
+    enum Action {
         case viewDidLoad
-        case bindWeather
+        case bindWeather(WeatherEntity)
+        case bindPhoto(PhotoEntity)
         case refreshButtonTouchUpInside
         case collectionViewDidSelectItemAt(_ weather: WeatherEntity)
     }
     
-    enum Output {
-        case weather(WeatherEntity?)
-        case photo(PhotoEntity?)
-        case isLoading(Bool)
+    struct State {
+        var weather: WeatherEntity?
+        var photo: PhotoEntity?
+        var isLoading: Bool = true
     }
     
-    struct Model {
-        var weather: WeatherEntity? {
-            didSet {
-                guard oldValue != weather else { return }
-                continuation?.yield(.weather(weather))
-            }
-        }
-        var photo: PhotoEntity? {
-            didSet {
-                guard oldValue != photo else { return }
-                continuation?.yield(.photo(photo))
-            }
-        }
-        var isLoading: Bool = true {
-            didSet {
-                guard oldValue != isLoading else { return }
-                continuation?.yield(.isLoading(isLoading))
-            }
-        }
-        
-        fileprivate var continuation: AsyncStream<Output>.Continuation?
-    }
-    private(set) var model = Model()
+    @ComposableState var state = State()
+    let send = PublishRelay<Action>()
+    let disposeBag = DisposeBag()
     
     @UserDefault(
         forKey: .userDefaults(.cityId),
@@ -55,60 +40,45 @@ final class CityViewModel: ViewModel {
     
     init(useCase: CityUseCase) {
         self.useCase = useCase
+        bindSend()
     }
     
-    deinit { model.continuation?.finish() }
-    
-    var output: AsyncStream<Output> {
-        return AsyncStream { continuation in
-            model.continuation = continuation
-        }
-    }
-    
-    func input(_ action: Input) {
+    func reducer(_ state: inout State, _ action: Action) -> Observable<Effect<Action>> {
         switch action {
         case .viewDidLoad:
-            fetchWeather()
-        case .bindWeather:
-            fetchPhoto()
-        case .refreshButtonTouchUpInside:
-            fetchWeather()
-        case let .collectionViewDidSelectItemAt(weather):
-            self.model.weather = weather
+            return fetchWeather(&state)
+        case let .bindWeather(weather):
+            state.weather = weather
             self.cityId = weather.id
+            return .run { [weak self] effect in
+                guard let self else { return }
+                guard let condition = weather.description.first else {
+                    return
+                }
+                let photo = try await useCase.fetchPhoto(condition: condition)
+                effect.onNext(.send(.bindPhoto(photo)))
+            }
+        case .refreshButtonTouchUpInside:
+            return fetchWeather(&state)
+        case let .collectionViewDidSelectItemAt(weather):
+            state.isLoading = true
+            return .send(.bindWeather(weather))
+        case let .bindPhoto(photo):
+            state.photo = photo
+            state.isLoading = false
+            return .none
         }
     }
 }
 
 private extension CityViewModel {
-    func fetchWeather() {
-        guard let id = cityId else { return }
-        Task { [weak self] in
-            self?.model.isLoading = true
-            defer { self?.model.isLoading = false }
-            do {
-                let weather = try await self?.useCase.fetchWeather(id: id)
-                self?.model.weather = weather
-                self?.cityId = weather?.id
-            } catch {
-                print(error)
-            }
-        }
-    }
-    func fetchPhoto() {
-        Task { [weak self] in
-            self?.model.isLoading = true
-            defer { self?.model.isLoading = false }
-            do {
-                let weather = self?.model.weather
-                guard let condition = weather?.description.first else {
-                    return
-                }
-                let photo = try await self?.useCase.fetchPhoto(condition: condition)
-                self?.model.photo = photo
-            } catch {
-                print(error)
-            }
+    func fetchWeather(_ state: inout State) -> Observable<Effect<Action>> {
+        guard let id = cityId else { return .none }
+        state.isLoading = true
+        let useCase = self.useCase
+        return .run { effect in
+            let weather = try await useCase.fetchWeather(id: id)
+            effect.onNext(.send(.bindWeather(weather)))
         }
     }
 }

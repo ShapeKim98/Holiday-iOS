@@ -9,6 +9,8 @@ import UIKit
 
 import Kingfisher
 import SnapKit
+import RxSwift
+import RxCocoa
 
 protocol CityViewControllerDelegate: AnyObject {
     func searchButtonTouchUpInside()
@@ -33,8 +35,10 @@ final class CityViewController: UIViewController {
     private let photoImageView = UIImageView()
     private let todayPhotoLabel = UILabel()
     private let forecastButton = UIButton()
+    private let refreshButton = UIBarButtonItem(systemItem: .refresh)
     
     private let viewModel: CityViewModel
+    private let disposeBag = DisposeBag()
     
     weak var delegate: CityViewControllerDelegate?
     
@@ -54,17 +58,19 @@ final class CityViewController: UIViewController {
         
         configureNavigation()
         
-        dataBinding()
-        
         configureUI()
         
         configureLayout()
         
-        viewModel.input(.viewDidLoad)
+        bindState()
+        
+        bindAction()
+        
+        viewModel.send.accept(.viewDidLoad)
     }
     
     func collectionViewDidSelectItemAt(_ weather: WeatherEntity) {
-        viewModel.input(.collectionViewDidSelectItemAt(weather))
+        viewModel.send.accept(.collectionViewDidSelectItemAt(weather))
     }
 }
 
@@ -144,12 +150,7 @@ private extension CityViewController {
                     self?.searchButtonTouchUpInside()
                 }
             ),
-            UIBarButtonItem(
-                systemItem: .refresh,
-                primaryAction: UIAction { [weak self] _ in
-                    self?.refreshButtonTouchUpInside()
-                }
-            )
+            refreshButton
         ]
     }
     
@@ -405,37 +406,35 @@ private extension CityViewController {
 
 // MARK: Data Bindings
 private extension CityViewController {
-    func dataBinding() {
-        let outputPublisher = viewModel.output
-        Task { [weak self] in
-            for await output in outputPublisher {
-                switch output {
-                case let .weather(weather):
-                    self?.bindWeather(weather)
-                case let .photo(photo):
-                    self?.bindPhoto(photo)
-                case let .isLoading(isLoading):
-                    self?.bindIsLoading(isLoading)
-                }
-            }
-        }
+    typealias Action = CityViewModel.Action
+    
+    func bindAction() {
+        refreshButton.rx.tap
+            .map { Action.refreshButtonTouchUpInside }
+            .bind(to: viewModel.send)
+            .disposed(by: disposeBag)
     }
     
-    func bindWeather(_ weather: WeatherEntity?) {
-        print(#function)
+    func bindState() {
+        viewModel.$state.driver
+            .compactMap(\.weather)
+            .distinctUntilChanged()
+            .drive(with: self) { this, weather in
+                this.bindWeather(weather)
+            }
+            .disposed(by: disposeBag)
         
-        guard let weather else { return }
+        bindPhoto()
         
+        bindIsLoading()
+    }
+    
+    func bindWeather(_ weather: WeatherEntity) {
         delegate?.bindWeather()
         
         configureNavigationTitle("\(weather.country), \(weather.name)")
         
         configureDateLabel(date: weather.date)
-        
-        dateLabel.snp.makeConstraints { make in
-            make.horizontalEdges.equalToSuperview()
-            make.top.equalToSuperview().offset(20)
-        }
         
         updateConditionLabel(
             iconName: weather.icon.first ?? "",
@@ -465,37 +464,40 @@ private extension CityViewController {
                 make.leading.equalToSuperview()
             }
         }
-        
-        viewModel.input(.bindWeather)
     }
     
-    func bindPhoto(_ photo: PhotoEntity?) {
-        guard let photo else { return }
-        print(#function)
-        
-        updatePhotoImage(photo: photo)
-    }
-    
-    func bindIsLoading(_ isLoading: Bool) {
-        UIView.animate(withDuration: 0.3) { [weak self] in
-            self?.contentView.alpha = isLoading ? 0 : 1
-            self?.activityIndicatorView.alpha = isLoading ? 1 : 0
-        } completion: { [weak self] _ in
-            if isLoading {
-                self?.activityIndicatorView.startAnimating()
-            } else {
-                self?.activityIndicatorView.stopAnimating()
+    func bindPhoto() {
+        viewModel.$state.driver
+            .compactMap(\.photo)
+            .distinctUntilChanged()
+            .drive(with: self) { this, photo in
+                this.updatePhotoImage(photo: photo)
             }
-        }
+            .disposed(by: disposeBag)
+    }
+    
+    func bindIsLoading() {
+        viewModel.$state.driver
+            .compactMap(\.isLoading)
+            .distinctUntilChanged()
+            .drive(with: self) { this, isLoading in
+                UIView.animate(withDuration: 0.3) {
+                    this.contentView.alpha = isLoading ? 0 : 1
+                    this.activityIndicatorView.alpha = isLoading ? 1 : 0
+                } completion: { _ in
+                    if isLoading {
+                        this.activityIndicatorView.startAnimating()
+                    } else {
+                        this.activityIndicatorView.stopAnimating()
+                    }
+                }
+            }
+            .disposed(by: disposeBag)
     }
 }
 
 // MARK: Functions
 private extension CityViewController {
-    func refreshButtonTouchUpInside() {
-        viewModel.input(.refreshButtonTouchUpInside)
-    }
-    
     func searchButtonTouchUpInside() {
         delegate?.searchButtonTouchUpInside()
     }
