@@ -25,10 +25,7 @@ final class ForecastViewModel: Composable {
     let send = PublishRelay<Action>()
     let disposeBag = DisposeBag()
     
-    @UserDefault(
-        forKey: .userDefaults(.cityId),
-        defaultValue: 1835848
-    )
+    @Shared(.userDefaults(.cityId))
     var cityId: Int?
     
     private let useCase: ForecastUseCase
@@ -41,7 +38,10 @@ final class ForecastViewModel: Composable {
     func reducer(_ state: inout State, _ action: Action) -> Observable<Effect<Action>> {
         switch action {
         case .viewDidLoad:
-            return fetchForecasts()
+            return .merge(
+                fetchForecasts(),
+                .run($cityId.map { _ in Action.bindWeather })
+            )
         case .bindWeather:
             return fetchForecasts()
         case let .bindForecasts(forecasts):
