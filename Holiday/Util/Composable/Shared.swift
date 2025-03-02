@@ -14,9 +14,12 @@ import RxCocoa
 struct Shared<T> {
     private let type: SharedType<T>
     
+    init(_ type: SharedType<T>) {
+        self.type = type
+    }
+    
     init(wrappedValue: T, _ type: SharedType<T>) {
         self.type = type
-        self.wrappedValue = wrappedValue
         
         switch type {
         case .userDefaults(let key):
@@ -24,14 +27,13 @@ struct Shared<T> {
                 UserDefaults.standard.set(wrappedValue, forKey: key.rawValue)
             }
         }
-        
     }
     
     var wrappedValue: T? {
         get {
             switch type {
             case let .userDefaults(key):
-                return UserDefaults.standard.object(forKey: key.rawValue) as? T
+                UserDefaults.standard.object(forKey: key.rawValue) as? T
             }
         }
         set {

@@ -15,7 +15,6 @@ import RxCocoa
 protocol CityViewControllerDelegate: AnyObject {
     func searchButtonTouchUpInside()
     func updatePhotoImage(photo: PhotoEntity)
-    func bindWeather()
     func forecastButtonTouchUpInside()
 }
 
@@ -67,10 +66,6 @@ final class CityViewController: UIViewController {
         bindAction()
         
         viewModel.send.accept(.viewDidLoad)
-    }
-    
-    func collectionViewDidSelectItemAt(_ weather: WeatherEntity) {
-        viewModel.send.accept(.collectionViewDidSelectItemAt(weather))
     }
 }
 
@@ -430,8 +425,6 @@ private extension CityViewController {
     }
     
     func bindWeather(_ weather: WeatherEntity) {
-        delegate?.bindWeather()
-        
         configureNavigationTitle("\(weather.country), \(weather.name)")
         
         configureDateLabel(date: weather.date)

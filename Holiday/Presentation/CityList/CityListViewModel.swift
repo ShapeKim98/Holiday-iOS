@@ -20,6 +20,7 @@ final class CityListViewModel: Composable {
         case bindWeathers([WeatherEntity])
         case bindPaginationWeathers([WeatherEntity])
         case bindQuery(String)
+        case collectionViewModelSelected(WeatherEntity)
     }
     
     struct State {
@@ -31,6 +32,9 @@ final class CityListViewModel: Composable {
     @ComposableState var state = State()
     let send = PublishRelay<Action>()
     let disposeBag = DisposeBag()
+    
+    @Shared(.userDefaults(.cityId))
+    var cityId: Int?
     
     private var page = 0
     private var isPaging = false
@@ -73,6 +77,9 @@ final class CityListViewModel: Composable {
             return .none
         case let .bindQuery(query):
             state.query = query
+            return .none
+        case let .collectionViewModelSelected(weather):
+            cityId = weather.id
             return .none
         }
     }

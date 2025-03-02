@@ -39,10 +39,6 @@ final class ForecastViewController: UIViewController {
         
         viewModel.send.accept(.viewDidLoad)
     }
-    
-    func bindWeather() {
-        viewModel.send.accept(.bindWeather)
-    }
 }
 
 // MARK: Configure View

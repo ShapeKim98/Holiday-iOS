@@ -17,7 +17,7 @@ final class CityViewModel: Composable {
         case bindWeather(WeatherEntity)
         case bindPhoto(PhotoEntity)
         case refreshButtonTouchUpInside
-        case collectionViewDidSelectItemAt(_ weather: WeatherEntity)
+        case bindCityId
     }
     
     struct State {
@@ -30,11 +30,8 @@ final class CityViewModel: Composable {
     let send = PublishRelay<Action>()
     let disposeBag = DisposeBag()
     
-    @UserDefault(
-        forKey: .userDefaults(.cityId),
-        defaultValue: 1835848
-    )
-    var cityId: Int?
+    @Shared(.userDefaults(.cityId))
+    var cityId: Int? = 1835848
     
     private let useCase: CityUseCase
     
@@ -46,10 +43,12 @@ final class CityViewModel: Composable {
     func reducer(_ state: inout State, _ action: Action) -> Observable<Effect<Action>> {
         switch action {
         case .viewDidLoad:
-            return fetchWeather(&state)
+            return .merge(
+                fetchWeather(&state),
+                .run($cityId.map { _ in Action.bindCityId } )
+            )
         case let .bindWeather(weather):
             state.weather = weather
-            self.cityId = weather.id
             return .run { [weak self] effect in
                 guard let self else { return }
                 guard let condition = weather.description.first else {
@@ -60,13 +59,12 @@ final class CityViewModel: Composable {
             }
         case .refreshButtonTouchUpInside:
             return fetchWeather(&state)
-        case let .collectionViewDidSelectItemAt(weather):
-            state.isLoading = true
-            return .send(.bindWeather(weather))
         case let .bindPhoto(photo):
             state.photo = photo
             state.isLoading = false
             return .none
+        case .bindCityId:
+            return fetchWeather(&state)
         }
     }
 }

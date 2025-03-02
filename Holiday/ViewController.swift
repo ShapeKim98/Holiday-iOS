@@ -167,10 +167,6 @@ extension ViewController: CityViewControllerDelegate {
         )
     }
     
-    func bindWeather() {
-        forecastViewController.bindWeather()
-    }
-    
     func forecastButtonTouchUpInside() {
         setViewControllers([forecastViewController], direction: .forward, animated: true)
     }
@@ -179,7 +175,5 @@ extension ViewController: CityViewControllerDelegate {
 extension ViewController: CityListViewControllerDelegate {
     func collectionViewDidSelectItemAt(_ weather: WeatherEntity) {
         navigationItem.title = "\(weather.country), \(weather.name)"
-        navigationController?.popViewController(animated: true)
-        cityViewController.collectionViewDidSelectItemAt(weather)
     }
 }

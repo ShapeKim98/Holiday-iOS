@@ -137,10 +137,19 @@ private extension CityListViewController {
             .bind(to: viewModel.send)
             .disposed(by: disposeBag)
         
-        collectionView.rx.modelSelected(WeatherEntity.self)
+        let modelSelected = collectionView.rx.modelSelected(WeatherEntity.self)
+            .share()
+        
+        modelSelected
             .bind(with: self) { this, weather in
+                this.navigationController?.popViewController(animated: true)
                 this.delegate?.collectionViewDidSelectItemAt(weather)
             }
+            .disposed(by: disposeBag)
+        
+        modelSelected
+            .map { Action.collectionViewModelSelected($0) }
+            .bind(to: viewModel.send)
             .disposed(by: disposeBag)
         
         searchController.searchBar.rx.text.orEmpty
