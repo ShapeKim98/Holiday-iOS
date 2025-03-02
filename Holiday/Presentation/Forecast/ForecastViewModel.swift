@@ -7,26 +7,24 @@
 
 import Foundation
 
-final class ForecastViewModel: ViewModel {
-    enum Input {
+import RxSwift
+import RxCocoa
+
+final class ForecastViewModel: Composable {
+    enum Action {
         case viewDidLoad
         case bindWeather
+        case bindForecasts([ForecastEntity])
     }
     
-    enum Output {
-        case forecasts([ForecastEntity])
+    struct State {
+        var forecasts: [ForecastEntity] = []
     }
     
-    struct Model {
-        var forecasts: [ForecastEntity] = [] {
-            didSet {
-                continuation?.yield(.forecasts(forecasts))
-            }
-        }
-        
-        fileprivate var continuation: AsyncStream<Output>.Continuation?
-    }
-    private(set) var model = Model()
+    @ComposableState var state = State()
+    let send = PublishRelay<Action>()
+    let disposeBag = DisposeBag()
+    
     @UserDefault(
         forKey: .userDefaults(.cityId),
         defaultValue: 1835848
@@ -37,37 +35,30 @@ final class ForecastViewModel: ViewModel {
     
     init(useCase: ForecastUseCase) {
         self.useCase = useCase
+        bindSend()
     }
     
-    deinit { model.continuation?.finish() }
-    
-    var output: AsyncStream<Output> {
-        return AsyncStream { continuation in
-            model.continuation = continuation
-        }
-    }
-    
-    func input(_ action: Input) {
+    func reducer(_ state: inout State, _ action: Action) -> Observable<Effect<Action>> {
         switch action {
         case .viewDidLoad:
-            fetchForecasts()
+            return fetchForecasts()
         case .bindWeather:
-            fetchForecasts()
+            return fetchForecasts()
+        case let .bindForecasts(forecasts):
+            state.forecasts = forecasts
+            return .none
         }
     }
 }
 
 private extension ForecastViewModel {
-    func fetchForecasts() {
-        guard let id = cityId else { return }
+    func fetchForecasts() -> Observable<Effect<Action>> {
+        guard let id = cityId else { return .none }
         let useCase = self.useCase
-        Task { [weak self] in
-            do {
-                let response = try await useCase.fetchForecast(id: id)
-                self?.model.forecasts = response
-            } catch {
-                print(error)
-            }
+        
+        return .run { effect in
+            let response = try await useCase.fetchForecast(id: id)
+            effect.onNext(.send(.bindForecasts(response)))
         }
     }
 }
