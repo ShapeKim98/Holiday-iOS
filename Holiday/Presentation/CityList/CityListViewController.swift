@@ -8,18 +8,23 @@
 import UIKit
 
 import SnapKit
+import RxSwift
+import RxCocoa
 
 protocol CityListViewControllerDelegate: AnyObject {
     func collectionViewDidSelectItemAt(_ weather: WeatherEntity)
 }
 
 final class CityListViewController: UIViewController {
-    private let viewModel: CityListViewModel
     private lazy var collectionView: UICollectionView = {
         return configureCollectionView()
     }()
     private let activityIndicatorView = UIActivityIndicatorView(style: .large)
     private let emptyLabel = UILabel()
+    private let searchController = UISearchController()
+    
+    private let viewModel: CityListViewModel
+    private let disposeBag = DisposeBag()
     
     weak var delegate: CityListViewControllerDelegate?
     
@@ -35,13 +40,15 @@ final class CityListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        dataBinding()
-        
         configureUI()
         
         configureLayout()
         
-        viewModel.input(.viewDidLoad)
+        bindState()
+        
+        bindAction()
+        
+        viewModel.send.accept(.viewDidLoad)
     }
 }
 
@@ -80,9 +87,6 @@ private extension CityListViewController {
         layout.sectionInset = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.delegate = self
-        collectionView.dataSource = self
-        collectionView.prefetchDataSource = self
         collectionView.backgroundColor = .clear
         collectionView.register(
             CityCollectionViewCell.self,
@@ -95,9 +99,7 @@ private extension CityListViewController {
     }
     
     func configureSearchController() {
-        let searchController = UISearchController()
         searchController.searchBar.placeholder = "지금, 날씨가 궁금한 곳은?"
-        searchController.searchResultsUpdater = self
         searchController.automaticallyShowsCancelButton = false
         searchController.hidesNavigationBarDuringPresentation = false
         
@@ -122,87 +124,100 @@ private extension CityListViewController {
 
 // MARK: Data Bindins
 private extension CityListViewController {
-    func dataBinding() {
-        let outputPublisher = viewModel.output
-        Task { [weak self] in
-            for await output in outputPublisher {
-                switch output {
-                case let .weathers(weathers):
-                    self?.bindWeathers(weathers)
-                case let .isLoading(isLoading):
-                    self?.bindIsLoading(isLoading)
-                case let .query(query):
-                    self?.bindQuery(query)
+    typealias Action = CityListViewModel.Action
+    
+    func bindAction() {
+        collectionView.rx.prefetchItems
+            .map { Action.collectionViewPrefetchRowsAt(rows: $0.map(\.row)) }
+            .bind(to: viewModel.send)
+            .disposed(by: disposeBag)
+        
+        collectionView.rx.willDisplayCell
+            .map { Action.collectionViewWillDisplay(row: $0.at.row) }
+            .bind(to: viewModel.send)
+            .disposed(by: disposeBag)
+        
+        let modelSelected = collectionView.rx.modelSelected(WeatherEntity.self)
+            .share()
+        
+        modelSelected
+            .bind(with: self) { this, weather in
+                this.navigationController?.popViewController(animated: true)
+                this.delegate?.collectionViewDidSelectItemAt(weather)
+            }
+            .disposed(by: disposeBag)
+        
+        modelSelected
+            .map { Action.collectionViewModelSelected($0) }
+            .bind(to: viewModel.send)
+            .disposed(by: disposeBag)
+        
+        searchController.searchBar.rx.text.orEmpty
+            .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
+            .map { Action.updateSearchResults(text: $0) }
+            .bind(to: viewModel.send)
+            .disposed(by: disposeBag)
+    }
+    
+    func bindState() {
+        bindWeathers()
+        
+        bindQuery()
+        
+        bindIsLoading()
+    }
+    
+    func bindWeathers() {
+        let observableWeathers = viewModel.$state.driver
+            .map(\.weathers)
+            .distinctUntilChanged()
+        
+        observableWeathers
+            .drive(collectionView.rx.items(
+                cellIdentifier: .cityCollectionCell,
+                cellType: CityCollectionViewCell.self
+            )) { indexPath, weather, cell in
+                cell.forRowAt(weather)
+            }
+            .disposed(by: disposeBag)
+        
+        observableWeathers
+            .map(\.isEmpty)
+            .drive(with: self) { this, isEmpty in
+                UIView.animate(withDuration: 0.3) {
+                    this.emptyLabel.alpha = isEmpty ? 1 : 0
+                } completion: { _ in
+                    this.emptyLabel.isHidden = !isEmpty
                 }
             }
-        }
+            .disposed(by: disposeBag)
     }
     
-    func bindWeathers(_ weathers: [WeatherEntity]) {
-        UIView.animate(withDuration: 0.3) { [weak self] in
-            self?.emptyLabel.alpha = weathers.isEmpty ? 1 : 0
-        } completion: { [weak self] _ in
-            self?.emptyLabel.isHidden = !weathers.isEmpty
-        }
-        collectionView.reloadData()
+    func bindQuery() {
+        viewModel.$state.driver
+            .map(\.query)
+            .distinctUntilChanged()
+            .map { _ in true }
+            .drive(collectionView.rx.scrollsToTop)
+            .disposed(by: disposeBag)
     }
     
-    func bindIsLoading(_ isLoading: Bool) {
-        UIView.animate(withDuration: 0.3) { [weak self] in
-            self?.activityIndicatorView.alpha = isLoading ? 1 : 0
-        } completion: { [weak self] _ in
-            if isLoading {
-                self?.activityIndicatorView.startAnimating()
-            } else {
-                self?.activityIndicatorView.stopAnimating()
+    func bindIsLoading() {
+        viewModel.$state.driver
+            .map(\.isLoading)
+            .distinctUntilChanged()
+            .drive(with: self) { this, isLoading in
+                UIView.animate(withDuration: 0.3) {
+                    this.activityIndicatorView.alpha = isLoading ? 1 : 0
+                } completion: { _ in
+                    if isLoading {
+                        this.activityIndicatorView.startAnimating()
+                    } else {
+                        this.activityIndicatorView.stopAnimating()
+                    }
+                }
             }
-        }
-    }
-    
-    func bindQuery(_ query: String) {
-        if !viewModel.model.weathers.isEmpty {
-            let firstIndex = IndexPath(item: 0, section: 0)
-            collectionView.scrollToItem(at: firstIndex, at: .top, animated: false)
-        }
-    }
-}
-
-extension CityListViewController: UISearchResultsUpdating {
-    func updateSearchResults(for searchController: UISearchController) {
-        let text = searchController.searchBar.text
-        viewModel.input(.updateSearchResults(text: text))
-    }
-}
-
-extension CityListViewController: UICollectionViewDelegate,
-                                  UICollectionViewDataSource,
-                                  UICollectionViewDataSourcePrefetching {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        viewModel.model.weathers.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: .cityCollectionCell,
-            for: indexPath
-        ) as? CityCollectionViewCell
-        guard let cell else { return UICollectionViewCell() }
-        let weather = viewModel.model.weathers[indexPath.row]
-        cell.forRowAt(weather)
-        return cell
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        viewModel.input(.tableViewPrefetchRowsAt(rows: indexPaths.map(\.item)))
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        viewModel.input(.tableViewWillDisplay(row: indexPath.item))
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let weather = viewModel.model.weathers[indexPath.item]
-        delegate?.collectionViewDidSelectItemAt(weather)
+            .disposed(by: disposeBag)
     }
 }
 

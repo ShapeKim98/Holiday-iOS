@@ -7,13 +7,20 @@
 
 import Foundation
 
+import RxSwift
+
 protocol PhotoRepositoryProtocol {
-    func fetchSearchPhoto(query: String) async throws -> PhotoEntity
+    func fetchSearchPhoto(query: String) -> Single<PhotoEntity>
 }
 
 final class TestPhotoRepository: PhotoRepositoryProtocol {
-    func fetchSearchPhoto(query: String) async throws -> PhotoEntity {
-        let response = PhotoResponse.mock
-        return response.toEntity()
+    func fetchSearchPhoto(query: String) -> Single<PhotoEntity> {
+        return .create { observer in
+            Task {
+                let response = PhotoResponse.mock
+                observer(.success(response.toEntity()))
+            }
+            return Disposables.create()
+        }
     }
 }

@@ -9,12 +9,15 @@ import UIKit
 
 import DGCharts
 import SnapKit
+import RxSwift
+import RxCocoa
 
 final class ForecastViewController: UIViewController {
     private let lineChartView = LineChartView()
     private let tableView = UITableView()
     
     private let viewModel: ForecastViewModel
+    private let disposeBag = DisposeBag()
     
     init(viewModel: ForecastViewModel) {
         self.viewModel = viewModel
@@ -27,18 +30,14 @@ final class ForecastViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        dataBinding()
 
         configureUI()
         
         configureLayout()
         
-        viewModel.input(.viewDidLoad)
-    }
-    
-    func bindWeather() {
-        viewModel.input(.bindWeather)
+        bindState()
+        
+        viewModel.send.accept(.viewDidLoad)
     }
 }
 
@@ -82,8 +81,6 @@ private extension ForecastViewController {
     }
     
     func configureTableView() {
-        tableView.delegate = self
-        tableView.dataSource = self
         tableView.backgroundColor = .clear
         tableView.register(
             ForecastTableViewCell.self,
@@ -104,19 +101,29 @@ private extension ForecastViewController {
 
 // MARK: Data Bindings
 private extension ForecastViewController {
-    func dataBinding() {
-        let publishOutputs = viewModel.output
-        Task { [weak self] in
-            for await output in publishOutputs {
-                switch output {
-                case .forecasts(let forecasts):
-                    self?.bindForecasts(forecasts)
-                }
+    typealias Action = ForecastViewModel.Action
+    
+    func bindState() {
+        let observableForecasts = viewModel.$state.driver
+            .map(\.forecasts)
+        
+        observableForecasts
+            .drive(tableView.rx.items(
+                cellIdentifier: .forecastTableCell,
+                cellType: ForecastTableViewCell.self
+            )) { indexPath, forecast, cell in
+                cell.forRowAt(forecast)
             }
-        }
+            .disposed(by: disposeBag)
+        
+        observableForecasts
+            .drive(with: self) { this, forecasts in
+                this.updateForecasts(forecasts)
+            }
+            .disposed(by: disposeBag)
     }
     
-    func bindForecasts(_ forecasts: [ForecastEntity]) {
+    func updateForecasts(_ forecasts: [ForecastEntity]) {
         print(#function)
         lineChartView.data?.clearValues()
         let firstDate = forecasts.first?.date ?? .now
@@ -137,25 +144,6 @@ private extension ForecastViewController {
         
         lineChartView.data = LineChartData(dataSet: dataSet)
         lineChartView.animate(xAxisDuration: 0.8, easingOption: .easeInOutCubic)
-        tableView.reloadData()
-    }
-}
-
-extension ForecastViewController: UITableViewDataSource,
-                                  UITableViewDelegate{
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.model.forecasts.count
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(
-            withIdentifier: .forecastTableCell,
-            for: indexPath
-        ) as? ForecastTableViewCell
-        guard let cell else { return UITableViewCell() }
-        let forecast = viewModel.model.forecasts[indexPath.row]
-        cell.forRowAt(forecast)
-        return cell
     }
 }
 

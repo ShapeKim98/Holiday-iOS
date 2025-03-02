@@ -7,6 +7,8 @@
 
 import Foundation
 
+import RxSwift
+
 final class CityUseCase {
     private let weatherRepository: WeatherRepositoryProtocol
     private let photoRepository: PhotoRepositoryProtocol
@@ -23,7 +25,7 @@ final class CityUseCase {
         return try await weatherRepository.fetchWeather(id: id)
     }
     
-    func fetchPhoto(condition: String) async throws -> PhotoEntity {
-        return try await photoRepository.fetchSearchPhoto(query: condition)
+    func fetchPhoto(condition: String) -> Single<PhotoEntity> {
+        return photoRepository.fetchSearchPhoto(query: condition)
     }
 }

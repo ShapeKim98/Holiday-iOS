@@ -7,44 +7,35 @@
 
 import Foundation
 
-final class CityListViewModel: ViewModel {
-    enum Input {
+import RxSwift
+import RxCocoa
+
+@MainActor
+final class CityListViewModel: Composable {
+    enum Action {
         case viewDidLoad
-        case tableViewWillDisplay(row: Int)
-        case tableViewPrefetchRowsAt(rows: [Int])
-        case updateSearchResults(text: String?)
+        case collectionViewWillDisplay(row: Int)
+        case collectionViewPrefetchRowsAt(rows: [Int])
+        case updateSearchResults(text: String)
+        case bindWeathers([WeatherEntity])
+        case bindPaginationWeathers([WeatherEntity])
+        case bindQuery(String)
+        case collectionViewModelSelected(WeatherEntity)
     }
     
-    enum Output {
-        case weathers([WeatherEntity])
-        case isLoading(Bool)
-        case query(String)
+    struct State {
+        var weathers: [WeatherEntity] = []
+        var isLoading = true
+        var query: String = ""
     }
     
-    struct Model {
-        var weathers: [WeatherEntity] = [] {
-            didSet {
-                guard oldValue != weathers else { return }
-                continuation?.yield(.weathers(weathers))
-            }
-        }
-        var isLoading = true {
-            didSet {
-                guard oldValue != isLoading else { return }
-                continuation?.yield(.isLoading(isLoading))
-            }
-        }
-        var query: String = "" {
-            didSet {
-                guard oldValue != query else { return }
-                continuation?.yield(.query(query))
-            }
-        }
-        
-        fileprivate var continuation: AsyncStream<Output>.Continuation?
-    }
+    @ComposableState var state = State()
+    let send = PublishRelay<Action>()
+    let disposeBag = DisposeBag()
     
-    private(set) var model = Model()
+    @Shared(.userDefaults(.cityId))
+    var cityId: Int?
+    
     private var page = 0
     private var isPaging = false
     
@@ -52,83 +43,80 @@ final class CityListViewModel: ViewModel {
     
     init(useCase: CityListUseCase) {
         self.useCase = useCase
+        bindSend()
     }
     
-    var output: AsyncStream<Output> {
-        return AsyncStream { continuation in
-            model.continuation = continuation
-        }
-    }
-    
-    deinit { model.continuation?.finish() }
-    
-    func input(_ action: Input) {
+    func reducer(_ state: inout State, _ action: Action) -> Observable<Effect<Action>> {
         switch action {
         case .viewDidLoad:
-            fetchCityList()
-        case .tableViewWillDisplay(let row):
-            guard model.weathers.count == row + 2 else { return }
-            paginationCityList()
-        case .tableViewPrefetchRowsAt(let rows):
-            let contains = rows.contains(where: { model.weathers.count == $0 + 2 })
-            guard contains else { return }
-            paginationCityList()
-        case .updateSearchResults(text: let text):
-            guard let text, model.query != text else { return }
+            return fetchCityList(&state, query: state.query)
+        case .collectionViewWillDisplay(let row):
+            guard state.weathers.count == row + 2 else { return .none }
+            return paginationCityList(&state)
+        case .collectionViewPrefetchRowsAt(let rows):
+            let contains = rows.contains(where: { state.weathers.count == $0 + 2 })
+            guard contains else { return .none }
+            return paginationCityList(&state)
+        case .updateSearchResults(let text):
+            guard state.query != text else { return .none }
             page = 0
-            model.query = text
-            fetchCityList()
+            return .concatenate(
+                fetchCityList(&state, query: text),
+                .send(.bindQuery(text))
+            )
+        case let .bindWeathers(weathers):
+            state.weathers = weathers
+            if state.weathers.isEmpty { page += 1 }
+            state.isLoading = false
+            return .none
+        case let .bindPaginationWeathers(weathers):
+            page += 1
+            state.weathers.append(contentsOf: weathers)
+            if weathers.isEmpty { page += 1 }
+            isPaging = false
+            return .none
+        case let .bindQuery(query):
+            state.query = query
+            return .none
+        case let .collectionViewModelSelected(weather):
+            cityId = weather.id
+            return .none
         }
     }
 }
 
 private extension CityListViewModel {
-    func fetchCityList() {
+    func fetchCityList(_ state: inout State, query: String) -> Observable<Effect<Action>> {
         let page = self.page
         let useCase = self.useCase
-        let query = self.model.query
+        state.isLoading = true
         
-        Task { [weak self] in
-            self?.model.isLoading = true
-            defer { self?.model.isLoading = false }
-            do {
-                var response: [WeatherEntity]
-                if query.isEmpty {
-                    response = try await useCase.fetchWeatherGroup(page: page, size: 20)
-                } else {
-                    response = try await useCase.fetchWeatherGroup(query: query, page: page, size: 20)
-                }
-                self?.model.weathers = response
-                guard !response.isEmpty else { return }
-                self?.page += 1
-            } catch {
-                print(error)
+        return .run { effect in
+            var response: [WeatherEntity]
+            if query.isEmpty {
+                response = try await useCase.fetchWeatherGroup(page: page, size: 20)
+            } else {
+                response = try await useCase.fetchWeatherGroup(query: query, page: page, size: 20)
             }
+            effect.onNext(.send(.bindWeathers(response)))
         }
     }
     
-    func paginationCityList() {
-        guard !isPaging else { return }
+    func paginationCityList(_ state: inout State) -> Observable<Effect<Action>> {
+        guard !isPaging else { return .none }
         let page = self.page
         let useCase = self.useCase
-        let query = self.model.query
+        let query = state.query
         
         isPaging = true
-        Task { [weak self] in
-            defer { self?.isPaging = false }
-            do {
-                var response: [WeatherEntity]
-                if query.isEmpty {
-                    response = try await useCase.fetchWeatherGroup(page: page, size: 20)
-                } else {
-                    response = try await useCase.fetchWeatherGroup(query: query, page: page, size: 20)
-                }
-                self?.model.weathers.append(contentsOf: response)
-                guard !response.isEmpty else { return }
-                self?.page += 1
-            } catch {
-                print(error)
+        return .run { effect in
+            var response: [WeatherEntity]
+            if query.isEmpty {
+                response = try await useCase.fetchWeatherGroup(page: page, size: 20)
+            } else {
+                response = try await useCase.fetchWeatherGroup(query: query, page: page, size: 20)
             }
+            effect.onNext(.send(.bindPaginationWeathers(response)))
         }
     }
 }
