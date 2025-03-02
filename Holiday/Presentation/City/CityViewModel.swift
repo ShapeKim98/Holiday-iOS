@@ -49,14 +49,10 @@ final class CityViewModel: Composable {
             )
         case let .bindWeather(weather):
             state.weather = weather
-            return .run { [weak self] effect in
-                guard let self else { return }
-                guard let condition = weather.description.first else {
-                    return
-                }
-                let photo = try await useCase.fetchPhoto(condition: condition)
-                effect.onNext(.send(.bindPhoto(photo)))
+            guard let condition = weather.description.first else {
+                return .none
             }
+            return .run(useCase.fetchPhoto(condition: condition).map { Action.bindPhoto($0)})
         case .refreshButtonTouchUpInside:
             return fetchWeather(&state)
         case let .bindPhoto(photo):
